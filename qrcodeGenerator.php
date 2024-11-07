@@ -108,38 +108,54 @@
         <div class="form-container">
             <form id="qrForm">
                 <div class="form-group">
+                    <label for="status">Status:</label>
+                    <input type="text" id="status" name="status" required>
+                </div>
+                <div class="form-group">
+                    <label for="id">ID:</label>
+                    <input type="text" id="id" name="id" required>
+                </div>
+                <div class="form-group">
                     <label for="name">Name:</label>
                     <input type="text" id="name" name="name" required>
                 </div>
-                
                 <div class="form-group">
                     <label for="lrn">LRN:</label>
                     <input type="text" id="lrn" name="lrn" required>
                 </div>
-                
                 <div class="form-group">
-                    <label for="regNumber">Registered Number:</label>
-                    <input type="text" id="regNumber" name="regNumber" required>
+                    <label for="timeIn">Time In:</label>
+                    <input type="text" id="timeIn" name="timeIn" required>
                 </div>
-                
+                <div class="form-group">
+                    <label for="gender">Gender:</label>
+                    <input type="text" id="gender" name="gender" required>
+                </div>
+                <div class="form-group">
+                    <label for="enrolled">Enrolled:</label>
+                    <input type="text" id="enrolled" name="enrolled" required>
+                </div>
                 <button type="button" class="submit-btn" onclick="generateQRCode()">Generate QR Code</button>
             </form>
             <div class="qr-code">
               <canvas id="qrcode"></canvas>
                <a id="downloadBtn" class="download-btn" download="qrcode.png">Download QR Code</a>
             </div>
-
         </div>
     </div>
 
     <script>
         function generateQRCode() {
+            const status = document.getElementById("status").value;
+            const id = document.getElementById("id").value;
             const name = document.getElementById("name").value;
             const lrn = document.getElementById("lrn").value;
-            const regNumber = document.getElementById("regNumber").value;
+            const timeIn = document.getElementById("timeIn").value;
+            const gender = document.getElementById("gender").value;
+            const enrolled = document.getElementById("enrolled").value;
             
-            if (name && lrn && regNumber) {
-                const qrData = `Name: ${name}\nLRN: ${lrn}\nRegistered Number: ${regNumber}`;
+            if (status && id && name && lrn && timeIn && gender && enrolled) {
+                const qrData = `Status: ${status}\nID: ${id}\nName: ${name}\nLRN: ${lrn}\nTime In: ${timeIn}\nGender: ${gender}\nEnrolled: ${enrolled}`;
                 const canvas = document.getElementById("qrcode");
                 
                 QRCode.toCanvas(canvas, qrData, { width: 200 }, function (error) {
@@ -158,3 +174,4 @@
     </script>
 </body>
 </html>
+        

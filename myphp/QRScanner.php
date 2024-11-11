@@ -14,13 +14,15 @@ if ($conn->connect_error) {
 }
 
 // Handle POST request to insert scanned data
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['tableName'])) {
-    $scannedData = $_POST['qrcode'];
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'], $_POST['registeredNumber'], $_POST['tableName'])) {
+    $studentName = $_POST['qrcode'];
+    $lrn = $_POST['lrn'];
+    $registeredNumber = $_POST['registeredNumber'];
     $tableName = $_POST['tableName'];
 
     // Prepare and execute the insert query
-    $stmt = $conn->prepare("INSERT INTO $tableName (studentname, time_in) VALUES (?, NOW())");
-    $stmt->bind_param("s", $scannedData);
+    $stmt = $conn->prepare("INSERT INTO $tableName (studentname, lrn, registered_number, time_in) VALUES (?, ?, ?, NOW())");
+    $stmt->bind_param("sss", $studentName, $lrn, $registeredNumber);
     if ($stmt->execute()) {
         echo "Data inserted successfully!";
     } else {
@@ -133,14 +135,19 @@ $conn->close();
                 if (code) {
                     scannedData = code.data;
 
-                    // Extract only the student name if prefixed by "Name: "
+                    // Extract name, LRN, and registered number using regex (assuming they are in the format "Name: <name>, LRN: <lrn>, Registered Number: <registered_number>")
                     const nameMatch = scannedData.match(/Name:\s*([a-zA-Z\s]+)/);
-                    const studentNameOnly = nameMatch ? nameMatch[1] : scannedData;
+                    const lrnMatch = scannedData.match(/LRN:\s*([\d]+)/);
+                    const regNumberMatch = scannedData.match(/Registered Number:\s*(\d{6})/);  // Assuming a 6-digit number format
 
-                    resultText.textContent = `Scanned: ${studentNameOnly}`;
+                    const studentNameOnly = nameMatch ? nameMatch[1] : "";
+                    const lrnOnly = lrnMatch ? lrnMatch[1] : "";
+                    const registeredNumber = regNumberMatch ? regNumberMatch[1] : "";
 
-                    // Automatically send data to the backend
-                    sendToBackend(studentNameOnly);
+                    resultText.textContent = `Scanned: ${studentNameOnly}, LRN: ${lrnOnly}, Registered Number: ${registeredNumber}`;
+
+                    // Send the data (studentName, lrn, registeredNumber) to the backend
+                    sendToBackend(studentNameOnly, lrnOnly, registeredNumber);
                 } else {
                     requestAnimationFrame(scanQRCode);
                 }
@@ -149,7 +156,7 @@ $conn->close();
             }
         }
 
-        function sendToBackend(studentName) {
+        function sendToBackend(studentName, lrn, registeredNumber) {
             // Get the selected table
             let selectedTable = document.getElementById('tableSelect').value;
 
@@ -162,7 +169,7 @@ $conn->close();
                     alert("QR Code data has been submitted successfully!");
                 }
             };
-            xhr.send('qrcode=' + encodeURIComponent(studentName) + '&tableName=' + encodeURIComponent(selectedTable));
+            xhr.send('qrcode=' + encodeURIComponent(studentName) + '&lrn=' + encodeURIComponent(lrn) + '&registeredNumber=' + encodeURIComponent(registeredNumber) + '&tableName=' + encodeURIComponent(selectedTable));
         }
     </script>
 </body>

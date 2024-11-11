@@ -13,21 +13,19 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Handle POST request to insert full student information (excluding registered number)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST['lrn'], $_POST['gender'])) {
+// Handle POST request to insert full student information with registered number
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST['lrn'], $_POST['gender'], $_POST['registered_number'])) {
     $studentname = $_POST['studentname'];
     $lrn = $_POST['lrn'];
     $gender = $_POST['gender'];
+    $registered_number = $_POST['registered_number'];
 
-    // Debugging: Check POST data
-    error_log("Received Student Info: $studentname, $lrn, $gender");
-
-    // Insert all student information into the master_list table (without registered number)
-    $stmt = $conn->prepare("INSERT INTO master_list (studentname, lrn, gender) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $studentname, $lrn, $gender);
+    // Insert all student information including registered number into the master_list table
+    $stmt = $conn->prepare("INSERT INTO master_list (studentname, lrn, gender, registered_number) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $studentname, $lrn, $gender, $registered_number);
 
     if ($stmt->execute()) {
-        echo "Student information inserted successfully!";
+        echo "Student information with registered number inserted successfully!";
     } else {
         echo "Error: " . $stmt->error;
     }
@@ -82,11 +80,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
             const lrn = document.getElementById("lrn").value;
             const gender = document.getElementById("gender").value;
 
-            // Log data being used to generate QR code
-            console.log(`Generating QR with Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}`);
+            // Generate a 6-digit registered number
+            const registeredNumber = Math.floor(100000 + Math.random() * 900000);
 
-            // Create QR code data with student information (excluding registered number)
-            const qrData = `Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}`;
+            // Log data being used to generate QR code
+            console.log(`Generating QR with Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}, Registered Number: ${registeredNumber}`);
+
+            // Create QR code data with student information
+            const qrData = `Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}, Registered Number: ${registeredNumber}`;
             const canvas = document.getElementById("qrcode");
 
             // Generate the QR code
@@ -100,26 +101,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
                 }
             });
 
-            // Save student information to the master_list table (without registered number)
-            saveStudentInfo(studentname, lrn, gender);
+            // Save student information to the master_list table including the registered number
+            saveStudentInfo(studentname, lrn, gender, registeredNumber);
         }
 
-        function saveStudentInfo(studentname, lrn, gender) {
+        function saveStudentInfo(studentname, lrn, gender, registeredNumber) {
             const xhr = new XMLHttpRequest();
             xhr.open("POST", "", true); // Posting to the same file
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 
             // Log data being sent to the server
-            console.log(`Sending student info: studentname=${studentname}&lrn=${lrn}&gender=${gender}`);
+            console.log(`Sending student info: studentname=${studentname}&lrn=${lrn}&gender=${gender}&registered_number=${registeredNumber}`);
 
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == 4 && xhr.status == 200) {
-                    console.log("Student information saved successfully");
+                    console.log("Student information with registered number saved successfully");
                 }
             };
 
-            // Send the form data (without the registered number)
-            xhr.send(`studentname=${studentname}&lrn=${lrn}&gender=${gender}`);
+            // Send the form data including the registered number
+            xhr.send(`studentname=${studentname}&lrn=${lrn}&gender=${gender}&registered_number=${registeredNumber}`);
         }
     </script>
 </body>

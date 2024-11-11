@@ -21,14 +21,15 @@ if ($conn_masterlist->connect_error) {
 }
 
 // Handle POST request to insert scanned data
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'], $_POST['tableName'])) {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'], $_POST['registered_number'], $_POST['tableName'])) {
     $studentName = $_POST['qrcode'];
     $lrn = $_POST['lrn'];
+    $registeredNumber = $_POST['registered_number'];
     $tableName = $_POST['tableName'];
 
     // Step 1: Check if the scanned data exists in the master_list table
-    $stmt_masterlist = $conn_masterlist->prepare("SELECT * FROM master_list WHERE studentname = ? AND lrn = ?");
-    $stmt_masterlist->bind_param("ss", $studentName, $lrn);
+    $stmt_masterlist = $conn_masterlist->prepare("SELECT * FROM master_list WHERE studentname = ? AND lrn = ? AND registered_number = ?");
+    $stmt_masterlist->bind_param("sss", $studentName, $lrn, $registeredNumber);
     $stmt_masterlist->execute();
     $result = $stmt_masterlist->get_result();
 
@@ -106,23 +107,26 @@ $conn_masterlist->close();
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Scan QR Code</h2>
-        <video id="preview" width="100%" height="auto" style="border: 1px solid #000;"></video>
-        <div id="result" class="result">
-            <h3>Scanned QR Code:</h3>
-            <p id="scanResult">Waiting for QR code...</p>
-        </div>
+<div class="container">
+    <h2>Scan QR Code</h2>
 
-        <!-- Dropdown to select the table -->
-        <label for="tableSelect">Select Table:</label>
-        <select id="tableSelect">
-            <?php foreach ($tables as $table): ?>
-                <option value="<?php echo htmlspecialchars($table); ?>"><?php echo htmlspecialchars($table); ?></option>
-            <?php endforeach; ?>
-        </select>
+    <!-- Back Button -->
+    <button onclick="window.location.href='addTable.php'" style="margin-bottom: 15px;">Back</button>
+
+    <video id="preview" width="100%" height="auto" style="border: 1px solid #000;"></video>
+    <div id="result" class="result">
+        <h3>Scanned QR Code:</h3>
+        <p id="scanResult">Waiting for QR code...</p>
     </div>
 
+    <!-- Dropdown to select the table -->
+    <label for="tableSelect">Select Table:</label>
+    <select id="tableSelect">
+        <?php foreach ($tables as $table): ?>
+            <option value="<?php echo htmlspecialchars($table); ?>"><?php echo htmlspecialchars($table); ?></option>
+        <?php endforeach; ?>
+    </select>
+</div>
     <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
     <script>
         let video = document.getElementById('preview');
@@ -154,17 +158,19 @@ $conn_masterlist->close();
                 if (code) {
                     scannedData = code.data;
 
-                    // Extract name and LRN using regex (assuming they are in the format "Name: <name>, LRN: <lrn>")
+                    // Extract name, LRN, and registered number
                     const nameMatch = scannedData.match(/Name:\s*([a-zA-Z\s]+)/);
                     const lrnMatch = scannedData.match(/LRN:\s*([\d]+)/);
+                    const regNumberMatch = scannedData.match(/Registered Number:\s*([\d]{6})/);
 
                     const studentNameOnly = nameMatch ? nameMatch[1] : "";
                     const lrnOnly = lrnMatch ? lrnMatch[1] : "";
+                    const registeredNumberOnly = regNumberMatch ? regNumberMatch[1] : "";
 
-                    resultText.textContent = `Scanned: ${studentNameOnly}, LRN: ${lrnOnly}`;
+                    resultText.textContent = `Scanned: ${studentNameOnly}, LRN: ${lrnOnly}, Registered Number: ${registeredNumberOnly}`;
 
-                    // Send the data (studentName, lrn) to the backend
-                    sendToBackend(studentNameOnly, lrnOnly);
+                    // Send the data (studentName, lrn, registeredNumber) to the backend
+                    sendToBackend(studentNameOnly, lrnOnly, registeredNumberOnly);
                 } else {
                     requestAnimationFrame(scanQRCode);
                 }
@@ -173,7 +179,7 @@ $conn_masterlist->close();
             }
         }
 
-        function sendToBackend(studentName, lrn) {
+        function sendToBackend(studentName, lrn, registeredNumber) {
             // Get the selected table
             let selectedTable = document.getElementById('tableSelect').value;
 
@@ -190,7 +196,7 @@ $conn_masterlist->close();
                     }
                 }
             };
-            xhr.send('qrcode=' + encodeURIComponent(studentName) + '&lrn=' + encodeURIComponent(lrn) + '&tableName=' + encodeURIComponent(selectedTable));
+            xhr.send('qrcode=' + encodeURIComponent(studentName) + '&lrn=' + encodeURIComponent(lrn) + '&registered_number=' + encodeURIComponent(registeredNumber) + '&tableName=' + encodeURIComponent(selectedTable));
         }
     </script>
 </body>

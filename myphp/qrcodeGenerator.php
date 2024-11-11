@@ -13,19 +13,18 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Handle POST request to insert full student information
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST['lrn'], $_POST['gender'], $_POST['registered_number'])) {
+// Handle POST request to insert full student information (excluding registered number)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST['lrn'], $_POST['gender'])) {
     $studentname = $_POST['studentname'];
     $lrn = $_POST['lrn'];
     $gender = $_POST['gender'];
-    $registeredNumber = $_POST['registered_number'];
 
     // Debugging: Check POST data
-    error_log("Received Student Info: $studentname, $lrn, $gender, $registeredNumber");
+    error_log("Received Student Info: $studentname, $lrn, $gender");
 
-    // Insert all student information into the master_list table
-    $stmt = $conn->prepare("INSERT INTO master_list (studentname, lrn, gender, registered_number) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("ssss", $studentname, $lrn, $gender, $registeredNumber);
+    // Insert all student information into the master_list table (without registered number)
+    $stmt = $conn->prepare("INSERT INTO master_list (studentname, lrn, gender) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $studentname, $lrn, $gender);
 
     if ($stmt->execute()) {
         echo "Student information inserted successfully!";
@@ -66,10 +65,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
                 <option value="Other">Other</option>
             </select>
 
-            <!-- Input for Registered Number (generated automatically if empty) -->
-            <label for="registered_number">Registered Number:</label>
-            <input type="text" id="registered_number" name="registered_number">
-
             <button type="button" onclick="generateQRCode()">Generate QR Code</button>
         </form>
 
@@ -86,19 +81,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
             const studentname = document.getElementById("studentname").value;
             const lrn = document.getElementById("lrn").value;
             const gender = document.getElementById("gender").value;
-            let registeredNumber = document.getElementById("registered_number").value;
-
-            // Generate a random registered number if not provided
-            if (!registeredNumber) {
-                registeredNumber = Math.floor(100000 + Math.random() * 900000);
-                document.getElementById("registered_number").value = registeredNumber; // Display the registered number
-            }
 
             // Log data being used to generate QR code
-            console.log(`Generating QR with Registered Number: ${registeredNumber}, Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}`);
+            console.log(`Generating QR with Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}`);
 
-            // Create QR code data with all information included
-            const qrData = `Registered Number: ${registeredNumber}, Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}`;
+            // Create QR code data with student information (excluding registered number)
+            const qrData = `Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}`;
             const canvas = document.getElementById("qrcode");
 
             // Generate the QR code
@@ -112,17 +100,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
                 }
             });
 
-            // Save student information to the master_list table
-            saveStudentInfo(studentname, lrn, gender, registeredNumber);
+            // Save student information to the master_list table (without registered number)
+            saveStudentInfo(studentname, lrn, gender);
         }
 
-        function saveStudentInfo(studentname, lrn, gender, registeredNumber) {
+        function saveStudentInfo(studentname, lrn, gender) {
             const xhr = new XMLHttpRequest();
             xhr.open("POST", "", true); // Posting to the same file
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 
             // Log data being sent to the server
-            console.log(`Sending student info: studentname=${studentname}&lrn=${lrn}&gender=${gender}&registered_number=${registeredNumber}`);
+            console.log(`Sending student info: studentname=${studentname}&lrn=${lrn}&gender=${gender}`);
 
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == 4 && xhr.status == 200) {
@@ -130,8 +118,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
                 }
             };
 
-            // Send the form data
-            xhr.send(`studentname=${studentname}&lrn=${lrn}&gender=${gender}&registered_number=${registeredNumber}`);
+            // Send the form data (without the registered number)
+            xhr.send(`studentname=${studentname}&lrn=${lrn}&gender=${gender}`);
         }
     </script>
 </body>

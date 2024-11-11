@@ -1,47 +1,66 @@
 <?php
-// Database configuration
+// Database configuration for table_db
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "table_db"; // Replace with your actual database name
+$dbname_table = "table_db"; // Database name where the tables exist
+$dbname_masterlist = "masterlistDB"; // Database where the master list exists
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
+// Create connections
+$conn_table = new mysqli($servername, $username, $password, $dbname_table);
+$conn_masterlist = new mysqli($servername, $username, $password, $dbname_masterlist);
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+// Check connection for table_db
+if ($conn_table->connect_error) {
+    die("Connection failed to table_db: " . $conn_table->connect_error);
+}
+
+// Check connection for masterlistDB
+if ($conn_masterlist->connect_error) {
+    die("Connection failed to masterlistDB: " . $conn_masterlist->connect_error);
 }
 
 // Handle POST request to insert scanned data
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'], $_POST['registeredNumber'], $_POST['tableName'])) {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'], $_POST['tableName'])) {
     $studentName = $_POST['qrcode'];
     $lrn = $_POST['lrn'];
-    $registeredNumber = $_POST['registeredNumber'];
     $tableName = $_POST['tableName'];
 
-    // Prepare and execute the insert query
-    $stmt = $conn->prepare("INSERT INTO $tableName (studentname, lrn, registered_number, time_in) VALUES (?, ?, ?, NOW())");
-    $stmt->bind_param("sss", $studentName, $lrn, $registeredNumber);
-    if ($stmt->execute()) {
-        echo "Data inserted successfully!";
+    // Step 1: Check if the scanned data exists in the master_list table
+    $stmt_masterlist = $conn_masterlist->prepare("SELECT * FROM master_list WHERE studentname = ? AND lrn = ?");
+    $stmt_masterlist->bind_param("ss", $studentName, $lrn);
+    $stmt_masterlist->execute();
+    $result = $stmt_masterlist->get_result();
+
+    if ($result->num_rows > 0) {
+        // Step 2: If a match is found, insert the data into the selected table in table_db
+        $stmt_table = $conn_table->prepare("INSERT INTO $tableName (studentname, lrn, time_in) VALUES (?, ?, NOW())");
+        $stmt_table->bind_param("ss", $studentName, $lrn);
+        if ($stmt_table->execute()) {
+            echo "Data inserted successfully!";
+        } else {
+            echo "Error: " . $stmt_table->error;
+        }
+        $stmt_table->close();
     } else {
-        echo "Error: " . $stmt->error;
+        echo "Error: QR code data does not match any entry in the master list.";
     }
-    $stmt->close();
+
+    $stmt_masterlist->close();
     exit;
 }
 
-// Fetch the list of tables
+// Fetch the list of tables in the table_db
 $tables = [];
-$result = $conn->query("SHOW TABLES");
+$result = $conn_table->query("SHOW TABLES");
 if ($result) {
     while ($row = $result->fetch_array()) {
         $tables[] = $row[0];
     }
 }
 
-$conn->close();
+$conn_table->close();
+$conn_masterlist->close();
 ?>
 
 <!DOCTYPE html>
@@ -135,19 +154,17 @@ $conn->close();
                 if (code) {
                     scannedData = code.data;
 
-                    // Extract name, LRN, and registered number using regex (assuming they are in the format "Name: <name>, LRN: <lrn>, Registered Number: <registered_number>")
+                    // Extract name and LRN using regex (assuming they are in the format "Name: <name>, LRN: <lrn>")
                     const nameMatch = scannedData.match(/Name:\s*([a-zA-Z\s]+)/);
                     const lrnMatch = scannedData.match(/LRN:\s*([\d]+)/);
-                    const regNumberMatch = scannedData.match(/Registered Number:\s*(\d{6})/);  // Assuming a 6-digit number format
 
                     const studentNameOnly = nameMatch ? nameMatch[1] : "";
                     const lrnOnly = lrnMatch ? lrnMatch[1] : "";
-                    const registeredNumber = regNumberMatch ? regNumberMatch[1] : "";
 
-                    resultText.textContent = `Scanned: ${studentNameOnly}, LRN: ${lrnOnly}, Registered Number: ${registeredNumber}`;
+                    resultText.textContent = `Scanned: ${studentNameOnly}, LRN: ${lrnOnly}`;
 
-                    // Send the data (studentName, lrn, registeredNumber) to the backend
-                    sendToBackend(studentNameOnly, lrnOnly, registeredNumber);
+                    // Send the data (studentName, lrn) to the backend
+                    sendToBackend(studentNameOnly, lrnOnly);
                 } else {
                     requestAnimationFrame(scanQRCode);
                 }
@@ -156,7 +173,7 @@ $conn->close();
             }
         }
 
-        function sendToBackend(studentName, lrn, registeredNumber) {
+        function sendToBackend(studentName, lrn) {
             // Get the selected table
             let selectedTable = document.getElementById('tableSelect').value;
 
@@ -166,10 +183,14 @@ $conn->close();
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == 4 && xhr.status == 200) {
-                    alert("QR Code data has been submitted successfully!");
+                    if (xhr.responseText.includes("Error")) {
+                        alert("QR Code data doesn't match any entry in the master list.");
+                    } else {
+                        alert("QR Code data has been submitted successfully!");
+                    }
                 }
             };
-            xhr.send('qrcode=' + encodeURIComponent(studentName) + '&lrn=' + encodeURIComponent(lrn) + '&registeredNumber=' + encodeURIComponent(registeredNumber) + '&tableName=' + encodeURIComponent(selectedTable));
+            xhr.send('qrcode=' + encodeURIComponent(studentName) + '&lrn=' + encodeURIComponent(lrn) + '&tableName=' + encodeURIComponent(selectedTable));
         }
     </script>
 </body>

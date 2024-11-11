@@ -30,8 +30,7 @@ if (isset($_POST['create_table'])) {
         gender ENUM('Male', 'Female', 'Other') NOT NULL,
         lrn VARCHAR(20) NOT NULL,
         time_in TIME,
-        deadline TIME DEFAULT '$deadline',
-        registered_number VARCHAR(50)
+        deadline TIME DEFAULT '$deadline'
     )";
 
     if ($conn->query($sql) === TRUE) {
@@ -91,7 +90,6 @@ if (isset($_POST['delete_table'])) {
                         <th>LRN</th>
                         <th>Time In</th>
                         <th>Deadline</th>
-                        <th>Registered Number</th>
                     </tr>";
 
             // Fetch existing rows and apply 'late' status if time_in is after the deadline
@@ -109,12 +107,11 @@ if (isset($_POST['delete_table'])) {
                             <td>" . $dataRow['lrn'] . "</td>
                             <td>" . $dataRow['time_in'] . "</td>
                             <td>" . $dataRow['deadline'] . "</td>
-                            <td>" . $dataRow['registered_number'] . "</td>
                           </tr>";
                 }
             } else {
                 echo "<tr>
-                        <td colspan='8' style='text-align:center;'>No data yet</td>
+                        <td colspan='7' style='text-align:center;'>No data yet</td>
                       </tr>";
             }
             echo "</table><br>";

@@ -30,7 +30,8 @@ if (isset($_POST['create_table'])) {
         gender ENUM('Male', 'Female', 'Other') NOT NULL,
         lrn VARCHAR(20) NOT NULL,
         time_in TIME,
-        deadline TIME DEFAULT '$deadline'
+        deadline TIME DEFAULT '$deadline',
+        date_created DATE DEFAULT CURRENT_DATE
     )";
 
     if ($conn->query($sql) === TRUE) {
@@ -50,15 +51,21 @@ if (isset($_POST['delete_table'])) {
         echo "<p>Error deleting table: " . $conn->error . "</p>";
     }
 }
-?>
 
+// Retrieve search query if available
+$searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Create, Display, Edit, and Delete Tables with Deadline</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/addTable.css">
 </head>
-<body>
+<body style="background-color: #f5f5f5;">
     <h2>Create a New Table with Deadline</h2>
     <form action="" method="POST">
         <label for="table_name">Enter Table Name:</label>
@@ -69,10 +76,22 @@ if (isset($_POST['delete_table'])) {
         <br>
         <button type="submit" name="create_table">Create Table with Deadline</button>
     </form>
+    <button onclick="window.location.href='QRScanner.php'">Go to QR Code Scanner</button>
+    <!-- Search form -->
+    <h3>Search for a Table</h3>
+    <form method="POST" action="">
+        <input type="text" name="search_query" placeholder="Search table name..." value="<?php echo htmlspecialchars($searchQuery); ?>" required>
+        <button type="submit">Search</button>
+    </form>
 
     <?php
-    // Display all tables in the database
-    $result = $conn->query("SHOW TABLES");
+    // Display all tables that match the search query
+    if ($searchQuery) {
+        $searchPattern = "%" . $conn->real_escape_string($searchQuery) . "%";
+        $result = $conn->query("SHOW TABLES LIKE '$searchPattern'");
+    } else {
+        $result = $conn->query("SHOW TABLES");
+    }
 
     if ($result === false) {
         echo "<p>Error retrieving tables: " . $conn->error . "</p>";
@@ -90,6 +109,7 @@ if (isset($_POST['delete_table'])) {
                         <th>LRN</th>
                         <th>Time In</th>
                         <th>Deadline</th>
+                        <th>Date Created</th>
                     </tr>";
 
             // Fetch existing rows and apply 'late' status if time_in is after the deadline
@@ -107,11 +127,12 @@ if (isset($_POST['delete_table'])) {
                             <td>" . $dataRow['lrn'] . "</td>
                             <td>" . $dataRow['time_in'] . "</td>
                             <td>" . $dataRow['deadline'] . "</td>
+                            <td>" . $dataRow['date_created'] . "</td>
                           </tr>";
                 }
             } else {
                 echo "<tr>
-                        <td colspan='7' style='text-align:center;'>No data yet</td>
+                        <td colspan='8' style='text-align:center;'>No data yet</td>
                       </tr>";
             }
             echo "</table><br>";
@@ -123,12 +144,8 @@ if (isset($_POST['delete_table'])) {
                   </form><br>";
         }
     } else {
-        echo "<p>No tables found in the database.</p>";
+        echo "<p>No tables found in the database matching '$searchQuery'.</p>";
     }
     ?>
-
-    <!-- Button to redirect to QR code scanner page -->
-    <br>
-    <button onclick="window.location.href='QRScanner.php'">Go to QR Code Scanner</button>
 </body>
 </html>

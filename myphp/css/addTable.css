@@ -1,0 +1,317 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', 'Segoe UI', sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+  padding: 3rem;
+  color: #2c3e50;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+/* Header styles */
+h2,
+h3 {
+  color: #1a237e;
+  margin-bottom: 2rem;
+  border-bottom: 3px solid #3f51b5;
+  padding-bottom: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+}
+
+h2::after,
+h3::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: #ff4081;
+}
+
+/* Form styles */
+form {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2.5rem;
+  max-width: 650px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+form:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+label {
+  display: block;
+  margin-bottom: 0.8rem;
+  color: #1a237e;
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+}
+
+input[type='text'],
+input[type='time'] {
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+input[type='text']:focus,
+input[type='time']:focus {
+  outline: none;
+  border-color: #3f51b5;
+  box-shadow: 0 0 0 4px rgba(63, 81, 181, 0.1);
+  background: white;
+}
+
+/* Button styles */
+button {
+  background: linear-gradient(45deg, #3f51b5, #5c6bc0);
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), transparent);
+  transition: transform 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(63, 81, 181, 0.3);
+}
+
+button:hover::after {
+  transform: translateX(100%);
+}
+
+button[name='delete_table'] {
+  background: linear-gradient(45deg, #f44336, #e57373);
+}
+
+button[name='delete_table']:hover {
+  box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+}
+
+/* Table styles */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+table:hover {
+  transform: translateY(-5px);
+}
+
+th,
+td {
+  padding: 1.2rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+th {
+  background: linear-gradient(45deg, #3f51b5, #5c6bc0);
+  color: white;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:nth-child(even) {
+  background-color: #f8f9ff;
+}
+
+tr {
+  transition: background-color 0.3s ease;
+}
+
+tr:hover {
+  background-color: #f0f2ff;
+}
+
+/* Status styles */
+td:nth-child(2) {
+  font-weight: 600;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+td:nth-child(2)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+td:nth-child(2):contains('Late')::before {
+  background-color: #f44336;
+  box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
+}
+
+td:nth-child(2):contains('On time')::before {
+  background-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+}
+
+/* QR Scanner button */
+button[onclick*='QRScanner'] {
+  background: linear-gradient(45deg, #4caf50, #66bb6a);
+  margin: 2.5rem 0;
+}
+
+button[onclick*='QRScanner']:hover {
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+/* Message styles */
+p {
+  padding: 1.2rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  position: relative;
+  padding-left: 3rem;
+}
+
+p::before {
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  left: 1.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+p:contains('successfully') {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border-left: 4px solid #4caf50;
+}
+
+p:contains('successfully')::before {
+  content: '\f00c';
+  color: #4caf50;
+}
+
+p:contains('Error') {
+  background-color: #ffebee;
+  color: #b71c1c;
+  border-left: 4px solid #f44336;
+}
+
+p:contains('Error')::before {
+  content: '\f071';
+  color: #f44336;
+}
+
+/* Empty table message */
+td[colspan='7'] {
+  text-align: center;
+  padding: 3rem;
+  color: #9e9e9e;
+  font-style: italic;
+  background: #fafafa;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  body {
+    padding: 1.5rem;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  th,
+  td {
+    padding: 1rem;
+  }
+
+  form {
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+
+  button {
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+}
+
+/* Loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.loading {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    to right,
+    #f6f7f8 0%,
+    #edeef1 20%,
+    #f6f7f8 40%,
+    #f6f7f8 100%
+  );
+  background-size: 1000px 100%;
+}

@@ -4,20 +4,13 @@ $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname_table = "table_db"; // Database name where the tables exist
-$dbname_masterlist = "masterlistDB"; // Database where the master list exists
 
-// Create connections
+// Create connection to table_db
 $conn_table = new mysqli($servername, $username, $password, $dbname_table);
-$conn_masterlist = new mysqli($servername, $username, $password, $dbname_masterlist);
 
 // Check connection for table_db
 if ($conn_table->connect_error) {
     die("Connection failed to table_db: " . $conn_table->connect_error);
-}
-
-// Check connection for masterlistDB
-if ($conn_masterlist->connect_error) {
-    die("Connection failed to masterlistDB: " . $conn_masterlist->connect_error);
 }
 
 // Handle POST request to insert scanned data
@@ -27,39 +20,68 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'
     $registeredNumber = $_POST['registered_number'];
     $tableName = $_POST['tableName'];
 
-    // Step 1: Check if the scanned data exists in the master_list table
-    $stmt_masterlist = $conn_masterlist->prepare("SELECT * FROM diamond WHERE studentname = ? AND lrn = ? AND registered_number = ?");
-    $stmt_masterlist->bind_param("sss", $studentName, $lrn, $registeredNumber);
-    $stmt_masterlist->execute();
-    $result = $stmt_masterlist->get_result();
-
-    if ($result->num_rows > 0) {
-        // Step 2: Retrieve the deadline time from the selected table
-        $stmt_deadline = $conn_table->prepare("SELECT deadline FROM $tableName LIMIT 1");
-        $stmt_deadline->execute();
-        $result_deadline = $stmt_deadline->get_result();
-        $row_deadline = $result_deadline->fetch_assoc();
-        $deadlineTime = $row_deadline ? $row_deadline['deadline'] : null;
-
-        // Step 3: Check the current time against the deadline
-        $currentTime = date("H:i:s");
-        $status = (strtotime($currentTime) <= strtotime($deadlineTime)) ? "on time" : "late";
-
-        // Step 4: Insert data with time_in and status into the selected table
-        $stmt_table = $conn_table->prepare("INSERT INTO $tableName (studentname, lrn, time_in, status) VALUES (?, ?, NOW(), ?)");
-        $stmt_table->bind_param("sss", $studentName, $lrn, $status);
-        if ($stmt_table->execute()) {
-            echo "Data inserted successfully!";
-        } else {
-            echo "Error: " . $stmt_table->error;
-        }
-        $stmt_table->close();
-        $stmt_deadline->close();
-    } else {
-        echo "Error: QR code data does not match any entry in the master list.";
+    // Ensure tableName is valid by checking against available tables
+    $tables = [];
+    $result = $conn_table->query("SHOW TABLES");
+    while ($row = $result->fetch_array()) {
+        $tables[] = $row[0];
     }
 
-    $stmt_masterlist->close();
+    if (!in_array($tableName, $tables)) {
+        echo "Error: Selected table does not exist.";
+        exit;
+    }
+
+    // Step 1: Check if the registered number exists and if status and time_in are empty
+    $stmt_table_check = $conn_table->prepare("SELECT * FROM $tableName WHERE registered_number = ?");
+    $stmt_table_check->bind_param("s", $registeredNumber);
+    $stmt_table_check->execute();
+    $result_check = $stmt_table_check->get_result();
+
+    if ($result_check->num_rows > 0) {
+        // Fetch the row to check current status and time_in values
+        $row = $result_check->fetch_assoc();
+        $currentStatus = $row['status'];
+        $currentTimeIn = $row['time_in'];
+
+        // Only proceed if status or time_in is missing
+        if (empty($currentStatus) || empty($currentTimeIn)) {
+            // Retrieve deadline time from the selected table
+            $stmt_deadline = $conn_table->prepare("SELECT deadline FROM $tableName LIMIT 1");
+            $stmt_deadline->execute();
+            $result_deadline = $stmt_deadline->get_result();
+            $row_deadline = $result_deadline->fetch_assoc();
+            $deadlineTime = $row_deadline ? $row_deadline['deadline'] : null;
+
+            // Convert deadline and current time to timestamps for comparison
+            $currentTime = date("H:i:s");
+            $currentTimeStamp = strtotime($currentTime);
+            $deadlineTimeStamp = strtotime($deadlineTime);
+
+            // Determine status based on comparison
+            $status = ($deadlineTime && $currentTimeStamp <= $deadlineTimeStamp) ? "on time" : "late";
+
+            // Update only the status and time_in fields if they are currently blank
+            $stmt_table_update = $conn_table->prepare("UPDATE $tableName SET status = IF(status IS NULL, ?, status), time_in = IF(time_in IS NULL, NOW(), time_in) WHERE registered_number = ?");
+            $stmt_table_update->bind_param("ss", $status, $registeredNumber);
+            
+            if ($stmt_table_update->execute()) {
+                echo "Status and time_in updated successfully!";
+            } else {
+                echo "Error: " . $stmt_table_update->error;
+            }
+
+            $stmt_table_update->close();
+        } else {
+            echo "No update needed: Status and time_in are already set.";
+        }
+        
+        $stmt_deadline->close();
+    } else {
+        echo "Error: QR code data does not match any entry in the selected table.";
+    }
+
+    $stmt_table_check->close();
     exit;
 }
 
@@ -73,7 +95,6 @@ if ($result) {
 }
 
 $conn_table->close();
-$conn_masterlist->close();
 ?>
 
 
@@ -106,77 +127,83 @@ $conn_masterlist->close();
         <?php endforeach; ?>
     </select>
 </div>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
-    <script>
-        let video = document.getElementById('preview');
-        let resultText = document.getElementById('scanResult');
-        let scannedData = '';
 
-        // Start the camera
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(function (stream) {
-                video.srcObject = stream;
-                video.setAttribute('playsinline', true);
-                video.play();
-                requestAnimationFrame(scanQRCode);
-            })
-            .catch(function (error) {
-                alert('Error accessing the camera: ' + error);
-            });
+<script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+<script>
+    let video = document.getElementById('preview');
+    let resultText = document.getElementById('scanResult');
 
-        function scanQRCode() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                let canvas = document.createElement('canvas');
-                let context = canvas.getContext('2d');
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                let code = jsQR(imageData.data, canvas.width, canvas.height);
+    // Start the camera
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(function (stream) {
+            video.srcObject = stream;
+            video.setAttribute('playsinline', true);
+            video.play();
+            requestAnimationFrame(scanQRCode);
+        })
+        .catch(function (error) {
+            alert('Error accessing the camera: ' + error);
+        });
 
-                if (code) {
-                    scannedData = code.data;
+    function scanQRCode() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            let canvas = document.createElement('canvas');
+            let context = canvas.getContext('2d');
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            let code = jsQR(imageData.data, canvas.width, canvas.height);
 
-                    // Extract name, LRN, and registered number
-                    const nameMatch = scannedData.match(/Name:\s*([a-zA-Z\s]+)/);
-                    const lrnMatch = scannedData.match(/LRN:\s*([\d]+)/);
-                    const regNumberMatch = scannedData.match(/Registered Number:\s*([\d]{6})/);
+            if (code) {
+                const scannedData = code.data;
 
-                    const studentNameOnly = nameMatch ? nameMatch[1] : "";
-                    const lrnOnly = lrnMatch ? lrnMatch[1] : "";
-                    const registeredNumberOnly = regNumberMatch ? regNumberMatch[1] : "";
+                // Extract name, LRN, and registered number
+                const nameMatch = scannedData.match(/Name:\s*([a-zA-Z\s]+)/);
+                const lrnMatch = scannedData.match(/LRN:\s*([\d]+)/);
+                const regNumberMatch = scannedData.match(/Registered Number:\s*([\d]{6})/);
 
-                    resultText.textContent = `Scanned: ${studentNameOnly}, LRN: ${lrnOnly}, Registered Number: ${registeredNumberOnly}`;
+                const studentNameOnly = nameMatch ? nameMatch[1] : "";
+                const lrnOnly = lrnMatch ? lrnMatch[1] : "";
+                const registeredNumberOnly = regNumberMatch ? regNumberMatch[1] : "";
 
-                    // Send the data (studentName, lrn, registeredNumber) to the backend
-                    sendToBackend(studentNameOnly, lrnOnly, registeredNumberOnly);
-                } else {
-                    requestAnimationFrame(scanQRCode);
-                }
+                resultText.textContent = `Scanned: ${studentNameOnly}, LRN: ${lrnOnly}, Registered Number: ${registeredNumberOnly}`;
+
+                // Send the data (studentName, lrn, registeredNumber) to the backend
+                sendToBackend(studentNameOnly, lrnOnly, registeredNumberOnly);
             } else {
                 requestAnimationFrame(scanQRCode);
             }
+        } else {
+            requestAnimationFrame(scanQRCode);
         }
+    }
 
-        function sendToBackend(studentName, lrn, registeredNumber) {
-            // Get the selected table
-            let selectedTable = document.getElementById('tableSelect').value;
+    async function sendToBackend(studentName, lrn, registeredNumber) {
+        let selectedTable = document.getElementById('tableSelect').value;
+        try {
+            let response = await fetch('', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `qrcode=${encodeURIComponent(studentName)}&lrn=${encodeURIComponent(lrn)}&registered_number=${encodeURIComponent(registeredNumber)}&tableName=${encodeURIComponent(selectedTable)}`
+            });
 
-            // Send the data using AJAX
-            let xhr = new XMLHttpRequest();
-            xhr.open('POST', '', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    if (xhr.responseText.includes("Error")) {
-                        alert("QR Code data doesn't match any entry in the master list.");
-                    } else {
-                        alert("QR Code data has been submitted successfully!");
-                    }
-                }
-            };
-            xhr.send('qrcode=' + encodeURIComponent(studentName) + '&lrn=' + encodeURIComponent(lrn) + '&registered_number=' + encodeURIComponent(registeredNumber) + '&tableName=' + encodeURIComponent(selectedTable));
+            let result = await response.text();
+            resultText.textContent = result.includes("Error") ? 
+                "QR Code data doesn't match any entry in the selected table." : 
+                result;
+
+            // If the scan is successful, refresh the page to scan again
+            if (!result.includes("Error")) {
+                // Optionally, alert the user
+                alert("QR Code data has been successfully processed!");
+                location.reload(); // Reload the page to allow the next scan
+            }
+        } catch (error) {
+            console.error('Error during the request:', error);
+            resultText.textContent = "An error occurred, please try again.";
         }
-    </script>
+    }
+</script>
 </body>
 </html>

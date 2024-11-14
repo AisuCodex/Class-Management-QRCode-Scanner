@@ -19,15 +19,15 @@ if (isset($_POST['create_table'])) {
     $tableName = $_POST['table_name'];
     $tableName = preg_replace("/[^a-zA-Z0-9_]/", "", $tableName);
 
-    // Define the SQL query to create the table, omitting a default value for `status`
+    // Define the SQL query to create the table with blank fields for `status` and `time_in`
     $sql = "CREATE TABLE IF NOT EXISTS `$tableName` (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
         registered_number VARCHAR(10) UNIQUE NOT NULL,
-        status VARCHAR(50) NULL,
+        status VARCHAR(50) DEFAULT NULL, -- Keep status blank initially
         studentname VARCHAR(100) NOT NULL,
         gender ENUM('Male', 'Female', 'Other') NOT NULL,
         lrn VARCHAR(20) NOT NULL,
-        time_in TIME,
+        time_in TIME DEFAULT NULL, -- Keep time_in blank initially
         deadline TIME,
         date_created DATE DEFAULT CURRENT_DATE
     )";
@@ -36,7 +36,7 @@ if (isset($_POST['create_table'])) {
     if ($conn->query($sql) === TRUE) {
         echo "<p>Table '$tableName' created successfully in master list database!</p>";
     } else {
-        echo "<p>Error creating table. Please try again.</p>";
+        echo "<p>Error creating table: " . $conn->error . "</p>";
     }
 }
 ?>

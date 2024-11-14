@@ -33,24 +33,26 @@ if (isset($_POST['create_table'])) {
     // Ensure deadline format is valid (HH:MM:SS)
     $deadline = date('H:i:s', strtotime($deadline));
 
-    // Create new table with specified structure
+    // Create new table with specified structure (including registered_number)
     $sql = "CREATE TABLE IF NOT EXISTS $tableName (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
-        status VARCHAR(50) DEFAULT '', -- Leave status blank for QR code scanning check
+        status VARCHAR(50) NULL DEFAULT '', -- Leave status blank for QR code scanning check
         studentname VARCHAR(100) NOT NULL,
         gender ENUM('Male', 'Female', 'Other') NOT NULL,
         lrn VARCHAR(20) NOT NULL,
+        registered_number VARCHAR(6) NOT NULL, -- Field for registered number
         time_in TIME,
-        deadline TIME DEFAULT '$deadline',
+        deadline TIME DEFAULT '$deadline', -- Use TIME type for consistent storage
         date_created DATE DEFAULT CURRENT_DATE
     )";
 
     if ($conn->query($sql) === TRUE) {
         echo "<p>Table '$tableName' with deadline '$deadline' created successfully!</p>";
 
-        // Copy data from selected table in `masterlistDB` to the newly created table
-        $copySql = "INSERT INTO $tableName (studentname, gender, lrn) 
-                    SELECT studentname, gender, lrn FROM $masterDbname.$copyFromTable";
+        // Copy data from selected table in `masterlistDB` to the newly created table, including registered_number
+        $copySql = "INSERT INTO $tableName (studentname, gender, lrn, registered_number) 
+                    SELECT studentname, gender, lrn, registered_number 
+                    FROM $masterDbname.$copyFromTable";  // Ensuring registered_number is copied
 
         if ($conn->query($copySql) === TRUE) {
             echo "<p>Data copied from '$copyFromTable' to '$tableName' successfully!</p>";
@@ -73,10 +75,46 @@ if (isset($_POST['delete_table'])) {
     }
 }
 
+// Handle QR code scan and update status logic
+if (isset($_POST['scan_qr'])) {
+    $studentId = $_POST['student_id']; // Student's unique identifier (e.g., id or registered_number)
+    $scannedTime = $_POST['scanned_time']; // Time when the QR code was scanned
+    $tableName = $_POST['table_name']; // The table where data needs to be updated
+
+    // Retrieve the deadline from the database for the specific student
+    $query = "SELECT deadline, time_in FROM $tableName WHERE registered_number = '$studentId'";
+    $result = $conn->query($query);
+
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $deadline = $row['deadline']; // Deadline set for the student
+        $timeIn = $row['time_in']; // Student's time_in (if available)
+
+        // Set default status to 'On Time'
+        $status = 'On Time';
+
+        // If the student scanned the QR code later than the deadline, mark as 'Late'
+        if ($scannedTime && strtotime($scannedTime) > strtotime($deadline)) {
+            $status = 'Late';
+        }
+
+        // Update the status and time_in after QR code scan
+        $updateQuery = "UPDATE $tableName SET status = '$status', time_in = '$scannedTime' WHERE registered_number = '$studentId'";
+        
+        if ($conn->query($updateQuery) === TRUE) {
+            echo "QR code scanned and status updated to '$status'.";
+        } else {
+            echo "Error updating status: " . $conn->error;
+        }
+    } else {
+        echo "Student not found!";
+    }
+}
+
 // Retrieve search query if available
 $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
-
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -85,6 +123,12 @@ $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./css/addTable.css">
+
+    <script type="text/javascript">
+        function confirmDelete() {
+            return confirm("Are you sure you want to delete this table?");
+        }
+    </script>
 </head>
 <body style="background-color: #f5f5f5;">
     <h2>Create a New Table with Deadline</h2>
@@ -115,6 +159,7 @@ $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
         <button type="submit" name="create_table">Create Table with Deadline and Copy Data</button>
     </form>
     <button onclick="window.location.href='QRScanner.php'">Go to QR Code Scanner</button>
+
     <!-- Search form -->
     <h3>Search for a Table</h3>
     <form method="POST" action="">
@@ -150,40 +195,45 @@ $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
                         <th>Date Created</th>
                     </tr>";
 
-            // Fetch existing rows (leave 'status' field blank initially)
+            // Fetch existing rows (leave 'status' and 'registered_number' field blank initially)
             $dataResult = $conn->query("SELECT * FROM $currentTable");
 
             if ($dataResult === false) {
                 echo "<p>Error retrieving data from '$currentTable': " . $conn->error . "</p>";
             } else if ($dataResult->num_rows > 0) {
                 while ($dataRow = $dataResult->fetch_assoc()) {
+                    // Compare time_in and deadline to set status
+                    $status = 'On Time'; // Default status
+                    if ($dataRow['time_in'] && strtotime($dataRow['time_in']) > strtotime($dataRow['deadline'])) {
+                        $status = 'Late';
+                    }
+
                     echo "<tr>
-                            <td>" . $dataRow['id'] . "</td>
-                            <td>" . $dataRow['status'] . "</td>
-                            <td>" . $dataRow['studentname'] . "</td>
-                            <td>" . $dataRow['gender'] . "</td>
-                            <td>" . $dataRow['lrn'] . "</td>
-                            <td>" . $dataRow['time_in'] . "</td>
-                            <td>" . $dataRow['deadline'] . "</td>
-                            <td>" . $dataRow['date_created'] . "</td>
-                          </tr>";
+                        <td>" . $dataRow['id'] . "</td>
+                        <td>" . $status . "</td>
+                        <td>" . $dataRow['studentname'] . "</td>
+                        <td>" . $dataRow['gender'] . "</td>
+                        <td>" . $dataRow['lrn'] . "</td>
+                        <td>" . $dataRow['time_in'] . "</td>
+                        <td>" . $dataRow['deadline'] . "</td>
+                        <td>" . $dataRow['date_created'] . "</td>
+                    </tr>";
                 }
             } else {
-                echo "<tr>
-                        <td colspan='8' style='text-align:center;'>No data yet</td>
-                      </tr>";
+                echo "<tr><td colspan='8'>No data found.</td></tr>";
             }
-            echo "</table><br>";
+            echo "</table>";
 
-            // Form to delete the table
-            echo "<form action='' method='POST' onsubmit=\"return confirm('Are you sure you want to delete this table?');\">
+            // Display delete button below the table with confirmation
+            echo "<form method='POST' onsubmit='return confirmDelete();'>
                     <input type='hidden' name='table_name' value='$currentTable'>
-                    <button type='submit' name='delete_table' style='color: red;'>Delete Table</button>
-                  </form><br>";
+                    <button type='submit' name='delete_table'>Delete Table</button>
+                </form>";
         }
     } else {
-        echo "<p>No tables found in the database matching '$searchQuery'.</p>";
+        echo "<p>No tables found in the database.</p>";
     }
     ?>
+
 </body>
 </html>

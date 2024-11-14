@@ -13,24 +13,38 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Get available tables from the database
+$tables = [];
+$result = $conn->query("SHOW TABLES");
+while ($row = $result->fetch_array()) {
+    $tables[] = $row[0];
+}
+
 // Handle POST request to insert full student information with registered number
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST['lrn'], $_POST['gender'], $_POST['registered_number'])) {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST['lrn'], $_POST['gender'], $_POST['registered_number'], $_POST['table'])) {
     $studentname = $_POST['studentname'];
     $lrn = $_POST['lrn'];
     $gender = $_POST['gender'];
     $registered_number = $_POST['registered_number'];
+    $table = $_POST['table'];
 
-    // Insert all student information including registered number into the master_list table
-    $stmt = $conn->prepare("INSERT INTO master_list (studentname, lrn, gender, registered_number) VALUES (?, ?, ?, ?)");
+    // Prepare the SQL statement with error checking
+    $stmt = $conn->prepare("INSERT INTO `$table` (studentname, lrn, gender, registered_number) VALUES (?, ?, ?, ?)");
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+
+    // Bind parameters and execute
     $stmt->bind_param("ssss", $studentname, $lrn, $gender, $registered_number);
 
     if ($stmt->execute()) {
         echo "Student information with registered number inserted successfully!";
     } else {
-        echo "Error: " . $stmt->error;
+        echo "Error executing statement: " . $stmt->error;
     }
+
     $stmt->close();
-    exit; // Exit to prevent HTML from loading after AJAX request
+    exit;
 }
 ?>
 
@@ -44,8 +58,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
 </head>
 <style>
-    /* Reset default styles */
-* {
+   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -187,6 +200,14 @@ canvas {
                 <option value="Other">Other</option>
             </select>
 
+            <label for="table">Select Table:</label>
+            <select id="table" name="table" required>
+                <option value="">Select Table</option>
+                <?php foreach ($tables as $table): ?>
+                    <option value="<?php echo $table; ?>"><?php echo $table; ?></option>
+                <?php endforeach; ?>
+            </select>
+
             <button type="button" onclick="generateQRCode()">Generate QR Code</button>
         </form>
 
@@ -203,12 +224,15 @@ canvas {
             const studentname = document.getElementById("studentname").value;
             const lrn = document.getElementById("lrn").value;
             const gender = document.getElementById("gender").value;
+            const table = document.getElementById("table").value;
+
+            if (!table) {
+                alert("Please select a table.");
+                return;
+            }
 
             // Generate a 6-digit registered number
             const registeredNumber = Math.floor(100000 + Math.random() * 900000);
-
-            // Log data being used to generate QR code
-            console.log(`Generating QR with Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}, Registered Number: ${registeredNumber}`);
 
             // Create QR code data with student information
             const qrData = `Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}, Registered Number: ${registeredNumber}`;
@@ -225,29 +249,27 @@ canvas {
                 }
             });
 
-            // Save student information to the master_list table including the registered number
-            saveStudentInfo(studentname, lrn, gender, registeredNumber);
+            // Save student information to the selected table including the registered number
+            saveStudentInfo(studentname, lrn, gender, registeredNumber, table);
         }
 
-        function saveStudentInfo(studentname, lrn, gender, registeredNumber) {
+        function saveStudentInfo(studentname, lrn, gender, registeredNumber, table) {
             const xhr = new XMLHttpRequest();
             xhr.open("POST", "", true); // Posting to the same file
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 
-            // Log data being sent to the server
-            console.log(`Sending student info: studentname=${studentname}&lrn=${lrn}&gender=${gender}&registered_number=${registeredNumber}`);
-
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == 4 && xhr.status == 200) {
-                    console.log("Student information with registered number saved successfully");
+                    console.log(xhr.responseText); // Display PHP response for debugging
+                    alert(xhr.responseText); // Optional: alert message to confirm data saved
                 }
             };
 
-            // Send the form data including the registered number
-            xhr.send(`studentname=${studentname}&lrn=${lrn}&gender=${gender}&registered_number=${registeredNumber}`);
+            // Encode data to avoid issues
+            const data = `studentname=${encodeURIComponent(studentname)}&lrn=${encodeURIComponent(lrn)}&gender=${encodeURIComponent(gender)}&registered_number=${encodeURIComponent(registeredNumber)}&table=${encodeURIComponent(table)}`;
+            xhr.send(data);
         }
     </script>
 </body>
 </html>
-
 <?php $conn->close(); ?>

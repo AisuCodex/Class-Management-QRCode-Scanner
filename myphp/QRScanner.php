@@ -28,21 +28,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'
     $tableName = $_POST['tableName'];
 
     // Step 1: Check if the scanned data exists in the master_list table
-    $stmt_masterlist = $conn_masterlist->prepare("SELECT * FROM master_list WHERE studentname = ? AND lrn = ? AND registered_number = ?");
+    $stmt_masterlist = $conn_masterlist->prepare("SELECT * FROM diamond WHERE studentname = ? AND lrn = ? AND registered_number = ?");
     $stmt_masterlist->bind_param("sss", $studentName, $lrn, $registeredNumber);
     $stmt_masterlist->execute();
     $result = $stmt_masterlist->get_result();
 
     if ($result->num_rows > 0) {
-        // Step 2: If a match is found, insert the data into the selected table in table_db
-        $stmt_table = $conn_table->prepare("INSERT INTO $tableName (studentname, lrn, time_in) VALUES (?, ?, NOW())");
-        $stmt_table->bind_param("ss", $studentName, $lrn);
+        // Step 2: Retrieve the deadline time from the selected table
+        $stmt_deadline = $conn_table->prepare("SELECT deadline FROM $tableName LIMIT 1");
+        $stmt_deadline->execute();
+        $result_deadline = $stmt_deadline->get_result();
+        $row_deadline = $result_deadline->fetch_assoc();
+        $deadlineTime = $row_deadline ? $row_deadline['deadline'] : null;
+
+        // Step 3: Check the current time against the deadline
+        $currentTime = date("H:i:s");
+        $status = (strtotime($currentTime) <= strtotime($deadlineTime)) ? "on time" : "late";
+
+        // Step 4: Insert data with time_in and status into the selected table
+        $stmt_table = $conn_table->prepare("INSERT INTO $tableName (studentname, lrn, time_in, status) VALUES (?, ?, NOW(), ?)");
+        $stmt_table->bind_param("sss", $studentName, $lrn, $status);
         if ($stmt_table->execute()) {
             echo "Data inserted successfully!";
         } else {
             echo "Error: " . $stmt_table->error;
         }
         $stmt_table->close();
+        $stmt_deadline->close();
     } else {
         echo "Error: QR code data does not match any entry in the master list.";
     }
@@ -64,203 +76,14 @@ $conn_table->close();
 $conn_masterlist->close();
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Scanner</title>
-    <style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
-/* Container Styles */
-.container {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 2rem;
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
-    width: 90%;
-    max-width: 500px;
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-}
-
-/* Heading Styles */
-h2 {
-    color: #2d3436;
-    margin-bottom: 1.5rem;
-    font-size: 1.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* Video Preview Styles */
-#preview {
-    width: 100%;
-    border-radius: 15px;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    background: #000;
-    transform: scaleX(-1);
-}
-
-/* Result Section Styles */
-.result {
-    background: #f8f9fa;
-    padding: 1.2rem;
-    border-radius: 12px;
-    margin: 1.5rem 0;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.result h3 {
-    color: #2d3436;
-    margin-bottom: 0.8rem;
-    font-size: 1.1rem;
-    font-weight: 500;
-}
-
-#scanResult {
-    color: #636e72;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    word-break: break-word;
-}
-
-/* Button Styles */
-button {
-    background: #6c5ce7;
-    color: white;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    margin-bottom: 1.5rem;
-}
-
-button:hover {
-    background: #5f4dd1;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
-}
-
-/* Dropdown Select Styles */
-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #2d3436;
-    font-weight: 500;
-}
-
-select {
-    width: 100%;
-    padding: 0.8rem;
-    border-radius: 8px;
-    border: 2px solid #e0e0e0;
-    background: white;
-    color: #2d3436;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232d3436' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: 1em;
-}
-
-select:focus {
-    outline: none;
-    border-color: #6c5ce7;
-    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .container {
-        padding: 1.5rem;
-        width: 95%;
-    }
-
-    h2 {
-        font-size: 1.5rem;
-    }
-
-    button {
-        padding: 0.7rem 1.2rem;
-        font-size: 0.95rem;
-    }
-}
-
-/* Animation for Scanning Effect */
-@keyframes scan {
-    0% {
-        transform: translateY(-100%);
-    }
-    100% {
-        transform: translateY(100%);
-    }
-}
-
-#preview::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: rgba(108, 92, 231, 0.5);
-    animation: scan 2s linear infinite;
-}
-
-/* Alert Styles */
-.alert {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    background: #00b894;
-    color: white;
-    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.2);
-    animation: slideIn 0.3s ease-out;
-    z-index: 1000;
-}
-
-.alert.error {
-    background: #d63031;
-    box-shadow: 0 4px 12px rgba(214, 48, 49, 0.2);
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-    </style>
+    <link rel="stylesheet" href="css/QRScanner.css">
 </head>
 <body>
 <div class="container">

@@ -1,31 +1,42 @@
 <?php
 session_start();
 
-// Database configuration
+// Database configuration for target database `table_db`
 $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "table_db"; // Replace with your actual database name
 
-// Create connection
+// Create connection for target database
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
+// Check connection for target database
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Handle table creation request with deadline
+// Database configuration for source database `masterlistDB`
+$masterDbname = "masterlistDB"; // Replace with the actual name of your master database
+$masterConn = new mysqli($servername, $username, $password, $masterDbname);
+
+// Check connection for source database
+if ($masterConn->connect_error) {
+    die("Connection to master database failed: " . $masterConn->connect_error);
+}
+
+// Handle table creation request with data copy and deadline
 if (isset($_POST['create_table'])) {
     $tableName = $_POST['table_name'];
     $deadline = $_POST['deadline'];
+    $copyFromTable = $_POST['copy_from_table'];
 
     // Ensure deadline format is valid (HH:MM:SS)
     $deadline = date('H:i:s', strtotime($deadline));
 
+    // Create new table with specified structure
     $sql = "CREATE TABLE IF NOT EXISTS $tableName (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
-        status VARCHAR(50),
+        status VARCHAR(50) DEFAULT '', -- Leave status blank for QR code scanning check
         studentname VARCHAR(100) NOT NULL,
         gender ENUM('Male', 'Female', 'Other') NOT NULL,
         lrn VARCHAR(20) NOT NULL,
@@ -36,6 +47,16 @@ if (isset($_POST['create_table'])) {
 
     if ($conn->query($sql) === TRUE) {
         echo "<p>Table '$tableName' with deadline '$deadline' created successfully!</p>";
+
+        // Copy data from selected table in `masterlistDB` to the newly created table
+        $copySql = "INSERT INTO $tableName (studentname, gender, lrn) 
+                    SELECT studentname, gender, lrn FROM $masterDbname.$copyFromTable";
+
+        if ($conn->query($copySql) === TRUE) {
+            echo "<p>Data copied from '$copyFromTable' to '$tableName' successfully!</p>";
+        } else {
+            echo "<p>Error copying data: " . $conn->error . "</p>";
+        }
     } else {
         echo "<p>Error creating table: " . $conn->error . "</p>";
     }
@@ -74,7 +95,24 @@ $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
         <label for="deadline">Set Deadline (HH:MM:SS):</label>
         <input type="time" id="deadline" name="deadline" required>
         <br>
-        <button type="submit" name="create_table">Create Table with Deadline</button>
+
+        <!-- Dropdown to select table from masterlistDB to copy data from -->
+        <label for="copy_from_table">Select Master List Table to Copy From:</label>
+        <select id="copy_from_table" name="copy_from_table" required>
+            <option value="">Select a table</option>
+            <?php
+            // Fetch tables from masterlistDB and populate dropdown
+            $tablesResult = $masterConn->query("SHOW TABLES");
+            if ($tablesResult->num_rows > 0) {
+                while ($tableRow = $tablesResult->fetch_array()) {
+                    echo "<option value='" . $tableRow[0] . "'>" . $tableRow[0] . "</option>";
+                }
+            }
+            ?>
+        </select>
+        <br>
+
+        <button type="submit" name="create_table">Create Table with Deadline and Copy Data</button>
     </form>
     <button onclick="window.location.href='QRScanner.php'">Go to QR Code Scanner</button>
     <!-- Search form -->
@@ -112,8 +150,8 @@ $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
                         <th>Date Created</th>
                     </tr>";
 
-            // Fetch existing rows and apply 'late' status if time_in is after the deadline
-            $dataResult = $conn->query("SELECT *, IF(time_in > deadline, 'Late', 'On time') AS status FROM $currentTable");
+            // Fetch existing rows (leave 'status' field blank initially)
+            $dataResult = $conn->query("SELECT * FROM $currentTable");
 
             if ($dataResult === false) {
                 echo "<p>Error retrieving data from '$currentTable': " . $conn->error . "</p>";

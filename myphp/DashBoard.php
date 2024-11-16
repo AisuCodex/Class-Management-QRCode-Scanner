@@ -24,6 +24,11 @@ if (isset($_POST['search'])) {
     $searchQuery = $conn->real_escape_string($searchQuery);
 }
 
+// Function to validate if the input is a valid date format (YYYY-MM-DD)
+function isValidDate($date) {
+    return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
+}
+
 // Fetch all table names from the `dashboard_db` database
 $sql = "SHOW TABLES";
 $tableResult = $conn->query($sql);
@@ -70,6 +75,11 @@ $tableResult = $conn->query($sql);
                     gender LIKE '%$searchQuery%' OR
                     section LIKE '%$searchQuery%' OR
                     lrn LIKE '%$searchQuery%'";
+
+                // If the search query is a valid date, search within the 'date_created' field
+                if (isValidDate($searchQuery)) {
+                    $dataSql .= " OR date_created LIKE '%$searchQuery%'";
+                }
             }
             $dataResult = $conn->query($dataSql);
 
@@ -104,11 +114,12 @@ $tableResult = $conn->query($sql);
                         $status = 'Absent';
                     }
 
-                    // Highlight matching search terms
+                    // Highlight matching search terms (if date is found in the search)
                     $highlightedName = preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['studentname']);
                     $highlightedSection = preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['section']);
                     $highlightedGender = preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['gender']);
                     $highlightedLrn = preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['lrn']);
+                    $highlightedDateCreated = isValidDate($searchQuery) ? preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['date_created']) : $row['date_created'];
 
                     echo "<tr>
                         <td>" . $row['id'] . "</td>
@@ -119,7 +130,7 @@ $tableResult = $conn->query($sql);
                         <td>" . $highlightedLrn . "</td>
                         <td>" . $row['time_in'] . "</td>
                         <td>" . $row['deadline'] . "</td>
-                        <td>" . $row['date_created'] . "</td>
+                        <td>" . $highlightedDateCreated . "</td>
                     </tr>";
                 }
                 echo "</table>";

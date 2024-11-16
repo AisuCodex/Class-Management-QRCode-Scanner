@@ -203,9 +203,11 @@ $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
             } else if ($dataResult->num_rows > 0) {
                 while ($dataRow = $dataResult->fetch_assoc()) {
                     // Compare time_in and deadline to set status
-                    $status = 'On Time'; // Default status
+                    $status = ''; // Default status
                     if ($dataRow['time_in'] && strtotime($dataRow['time_in']) > strtotime($dataRow['deadline'])) {
                         $status = 'Late';
+                        if ($dataRow['time_in'] && strtotime($dataRow['time_in']) < strtotime($dataRow['deadline'])) {
+                            $status = 'present';
                     }
 
                     echo "<tr>

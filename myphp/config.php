@@ -91,7 +91,7 @@ if (isset($_POST['scan_qr'])) {
         $timeIn = $row['time_in']; // Student's time_in (if available)
 
         // Set default status to 'On Time'
-        $status = 'On Time';
+        $status = '';
 
         // If the student scanned the QR code later than the deadline, mark as 'Late'
         if ($scannedTime && strtotime($scannedTime) > strtotime($deadline)) {
@@ -110,6 +110,20 @@ if (isset($_POST['scan_qr'])) {
         echo "Student not found!";
     }
 }
+
+    // Handle Finalize Button Click
+if (isset($_POST['finalize_table'])) {
+    $tableName = $_POST['table_name'];
+
+    // Update the status of students who have no time_in value to 'Absent'
+    $updateQuery = "UPDATE $tableName SET status = 'Absent' WHERE time_in IS NULL OR time_in = ''";
+    
+    if ($conn->query($updateQuery) === TRUE) {
+        echo "<p>Status has been updated to 'Absent' for students without time_in in '$tableName'.</p>";
+    } else {
+        echo "<p>Error updating status: " . $conn->error . "</p>";
+    }
+}   
 
 // Retrieve search query if available
 $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';

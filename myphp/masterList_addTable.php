@@ -15,11 +15,11 @@ if ($conn->connect_error) {
 
 // Handle table creation request
 if (isset($_POST['create_table'])) {
-    // Retrieve and sanitize the table name from the form input
+    // Retrieve and sanitize the table name and section from the form input
     $tableName = $_POST['table_name'];
     $tableName = preg_replace("/[^a-zA-Z0-9_]/", "", $tableName);
 
-    // Define the SQL query to create the table with blank fields for `status` and `time_in`
+    // Define the SQL query to create the table with `section` field
     $sql = "CREATE TABLE IF NOT EXISTS `$tableName` (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
         registered_number VARCHAR(10) UNIQUE NOT NULL,
@@ -27,14 +27,14 @@ if (isset($_POST['create_table'])) {
         studentname VARCHAR(100) NOT NULL,
         gender ENUM('Male', 'Female', 'Other') NOT NULL,
         lrn VARCHAR(20) NOT NULL,
+        section VARCHAR(100) NOT NULL, -- Added section field
         time_in TIME DEFAULT NULL, -- Keep time_in blank initially
-        deadline TIME,
-        date_created DATE DEFAULT CURRENT_DATE
+        deadline TIME
     )";
 
     // Execute the query
     if ($conn->query($sql) === TRUE) {
-        echo "<p>Table '$tableName' created successfully in master list database!</p>";
+        echo "<p>Table '$tableName' created successfully with section field in master list database!</p>";
     } else {
         echo "<p>Error creating table: " . $conn->error . "</p>";
     }
@@ -64,8 +64,9 @@ if (isset($_POST['create_table'])) {
 
 <h2>Create a New Table in Master List</h2>
 <form action="" method="POST">
-    <label for="table_name">Enter Table Name (e.g., Section Name):</label>
+    <label for="table_name">Enter Section Name (e.g., Section Name):</label>
     <input type="text" id="table_name" name="table_name" required placeholder="Enter table name (e.g., Diamond)">
+
     <button type="submit" name="create_table">Create Table</button>
 </form>
 

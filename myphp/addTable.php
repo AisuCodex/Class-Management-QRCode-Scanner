@@ -29,6 +29,9 @@ include 'config.php';
         <label for="deadline">Set Deadline (HH:MM:SS):</label>
         <input type="time" id="deadline" name="deadline" required>
         <br>
+        <label for="section">Enter Section:</label>
+        <input type="text" id="section" name="section" required>
+        <br>
 
         <!-- Dropdown to select table from masterlistDB to copy data from -->
         <label for="copy_from_table">Select Master List Table to Copy From:</label>
@@ -127,6 +130,7 @@ include 'config.php';
             echo "<table border='1'>
                     <tr>
                         <th>Id</th>
+                        <th>Section</th>
                         <th>Status</th>
                         <th>Student Name</th>
                         <th>Gender</th>
@@ -136,37 +140,38 @@ include 'config.php';
                         <th>Date Created</th>
                     </tr>";
 
-// Fetch existing rows
-$dataResult = $conn->query("SELECT * FROM $currentTable");
-if ($dataResult && $dataResult->num_rows > 0) {
-    while ($dataRow = $dataResult->fetch_assoc()) {
-        // Determine status based on time_in and deadline
-        $status = '';
-        if ($dataRow['time_in']) {
-            if (strtotime($dataRow['time_in']) > strtotime($dataRow['deadline'])) {
-                $status = 'Late';
-            } elseif (strtotime($dataRow['time_in']) <= strtotime($dataRow['deadline'])) {
-                $status = 'Present';
-            }
-        } else {
-            $status = '';
-        }
+            // Fetch existing rows
+            $dataResult = $conn->query("SELECT * FROM $currentTable");
+            if ($dataResult && $dataResult->num_rows > 0) {
+                while ($dataRow = $dataResult->fetch_assoc()) {
+                    // Determine status based on time_in and deadline
+                    $status = '';
+                    if ($dataRow['time_in']) {
+                        if (strtotime($dataRow['time_in']) > strtotime($dataRow['deadline'])) {
+                            $status = 'Late';
+                        } elseif (strtotime($dataRow['time_in']) <= strtotime($dataRow['deadline'])) {
+                            $status = 'Present';
+                        }
+                    } else {
+                        $status = '';
+                    }
 
-        // Output the table row
-        echo "<tr>
-            <td>" . $dataRow['id'] . "</td>
-            <td>" . $status . "</td>
-            <td>" . $dataRow['studentname'] . "</td>
-            <td>" . $dataRow['gender'] . "</td>
-            <td>" . $dataRow['lrn'] . "</td>
-            <td>" . $dataRow['time_in'] . "</td>
-            <td>" . $dataRow['deadline'] . "</td>
-            <td>" . $dataRow['date_created'] . "</td>
-        </tr>";
-    }
-} else {
-    echo "<tr><td colspan='8'>No data found.</td></tr>";
-}
+                    // Output the table row
+                    echo "<tr>
+                        <td>" . $dataRow['id'] . "</td>
+                        <td>" . $dataRow['section'] . "</td>
+                        <td>" . $status . "</td>
+                        <td>" . $dataRow['studentname'] . "</td>
+                        <td>" . $dataRow['gender'] . "</td>
+                        <td>" . $dataRow['lrn'] . "</td>
+                        <td>" . $dataRow['time_in'] . "</td>
+                        <td>" . $dataRow['deadline'] . "</td>
+                        <td>" . $dataRow['date_created'] . "</td>
+                    </tr>";
+                }
+            } else {
+                echo "<tr><td colspan='9'>No data found.</td></tr>";
+            }
 
             echo "</table>";
 

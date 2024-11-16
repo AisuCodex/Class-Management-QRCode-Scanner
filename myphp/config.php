@@ -24,7 +24,7 @@ if ($masterConn->connect_error) {
     die("Connection to master database failed: " . $masterConn->connect_error);
 }
 
-// Handle table creation request with data copy and deadline
+// Handle table creation request with data copy, deadline, and section
 if (isset($_POST['create_table'])) {
     $tableName = $_POST['table_name'];
     $deadline = $_POST['deadline'];
@@ -33,9 +33,10 @@ if (isset($_POST['create_table'])) {
     // Ensure deadline format is valid (HH:MM:SS)
     $deadline = date('H:i:s', strtotime($deadline));
 
-    // Create new table with specified structure (including registered_number)
+    // Create new table with specified structure (including registered_number and section)
     $sql = "CREATE TABLE IF NOT EXISTS $tableName (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
+        section VARCHAR(100) NOT NULL, -- New section field
         status VARCHAR(50) NULL DEFAULT '', -- Leave status blank for QR code scanning check
         studentname VARCHAR(100) NOT NULL,
         gender ENUM('Male', 'Female', 'Other') NOT NULL,
@@ -49,10 +50,10 @@ if (isset($_POST['create_table'])) {
     if ($conn->query($sql) === TRUE) {
         echo "<p>Table '$tableName' with deadline '$deadline' created successfully!</p>";
 
-        // Copy data from selected table in `masterlistDB` to the newly created table, including registered_number
-        $copySql = "INSERT INTO $tableName (studentname, gender, lrn, registered_number) 
-                    SELECT studentname, gender, lrn, registered_number 
-                    FROM $masterDbname.$copyFromTable";  // Ensuring registered_number is copied
+        // Copy data from selected table in `masterlistDB` to the newly created table, including section
+        $copySql = "INSERT INTO $tableName (section, studentname, gender, lrn, registered_number) 
+                    SELECT section, studentname, gender, lrn, registered_number 
+                    FROM $masterDbname.$copyFromTable";  // Ensure section is copied
 
         if ($conn->query($copySql) === TRUE) {
             echo "<p>Data copied from '$copyFromTable' to '$tableName' successfully!</p>";
@@ -111,7 +112,7 @@ if (isset($_POST['scan_qr'])) {
     }
 }
 
-    // Handle Finalize Button Click
+// Handle Finalize Button Click
 if (isset($_POST['finalize_table'])) {
     $tableName = $_POST['table_name'];
 
@@ -123,7 +124,7 @@ if (isset($_POST['finalize_table'])) {
     } else {
         echo "<p>Error updating status: " . $conn->error . "</p>";
     }
-}   
+}
 
 // Retrieve search query if available
 $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';

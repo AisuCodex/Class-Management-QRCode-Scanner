@@ -20,25 +20,26 @@ while ($row = $result->fetch_array()) {
     $tables[] = $row[0];
 }
 
-// Handle POST request to insert full student information with registered number
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST['lrn'], $_POST['gender'], $_POST['registered_number'], $_POST['table'])) {
+// Handle POST request to insert full student information with registered number and section
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST['lrn'], $_POST['gender'], $_POST['registered_number'], $_POST['section'], $_POST['table'])) {
     $studentname = $_POST['studentname'];
     $lrn = $_POST['lrn'];
     $gender = $_POST['gender'];
     $registered_number = $_POST['registered_number'];
+    $section = $_POST['section'];
     $table = $_POST['table'];
 
     // Prepare the SQL statement with error checking
-    $stmt = $conn->prepare("INSERT INTO `$table` (studentname, lrn, gender, registered_number) VALUES (?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO `$table` (studentname, lrn, gender, registered_number, section) VALUES (?, ?, ?, ?, ?)");
     if (!$stmt) {
         die("Error preparing statement: " . $conn->error);
     }
 
     // Bind parameters and execute
-    $stmt->bind_param("ssss", $studentname, $lrn, $gender, $registered_number);
+    $stmt->bind_param("sssss", $studentname, $lrn, $gender, $registered_number, $section);
 
     if ($stmt->execute()) {
-        echo "Student information with registered number inserted successfully!";
+        echo "Student information with section inserted successfully!";
     } else {
         echo "Error executing statement: " . $stmt->error;
     }
@@ -47,138 +48,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
     exit;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator</title>
-    <link rel="stylesheet" href="css/QRCodeGenerator.css">
+    <link rel="stylesheet" href="css/qrcodeGenerator.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
 </head>
 <style>
-   * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
 
-body {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-}
-
-.container {
-    background: white;
-    padding: 2rem;
-    border-radius: 15px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-    width: 90%;
-    max-width: 500px;
-}
-
-h2 {
-    color: #2c3e50;
-    text-align: center;
-    margin-bottom: 2rem;
-    font-size: 1.8rem;
-    font-weight: 600;
-}
-
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-label {
-    color: #34495e;
-    font-size: 0.9rem;
-    margin-bottom: 0.3rem;
-}
-
-input, select {
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: border-color 0.3s ease;
-}
-
-input:focus, select:focus {
-    outline: none;
-    border-color: #3498db;
-}
-
-button {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: background 0.3s ease;
-    margin-top: 1rem;
-}
-
-button:hover {
-    background: #2980b9;
-}
-
-.qr-code {
-    margin-top: 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-}
-
-canvas {
-    background: white;
-    padding: 1rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.download-btn {
-    display: none;
-    text-decoration: none;
-    background: #2ecc71;
-    color: white;
-    padding: 0.8rem 1.5rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: background 0.3s ease;
-}
-
-.download-btn:hover {
-    background: #27ae60;
-}
-
-/* Responsive Design */
-@media (max-width: 600px) {
-    .container {
-        width: 95%;
-        padding: 1.5rem;
-    }
-
-    h2 {
-        font-size: 1.5rem;
-    }
-
-    button, .download-btn {
-        width: 100%;
-        text-align: center;
-    }
-}
 </style>
 <body>
     <div class="container">
@@ -199,6 +79,9 @@ canvas {
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
             </select>
+
+            <label for="section">Section:</label>
+            <input type="text" id="section" name="section" required>
 
             <label for="table">Select Table:</label>
             <select id="table" name="table" required>
@@ -224,6 +107,7 @@ canvas {
             const studentname = document.getElementById("studentname").value;
             const lrn = document.getElementById("lrn").value;
             const gender = document.getElementById("gender").value;
+            const section = document.getElementById("section").value;
             const table = document.getElementById("table").value;
 
             if (!table) {
@@ -235,7 +119,7 @@ canvas {
             const registeredNumber = Math.floor(100000 + Math.random() * 900000);
 
             // Create QR code data with student information
-            const qrData = `Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}, Registered Number: ${registeredNumber}`;
+            const qrData = `Name: ${studentname}, LRN: ${lrn}, Gender: ${gender}, Section: ${section}, Registered Number: ${registeredNumber}`;
             const canvas = document.getElementById("qrcode");
 
             // Generate the QR code
@@ -249,11 +133,11 @@ canvas {
                 }
             });
 
-            // Save student information to the selected table including the registered number
-            saveStudentInfo(studentname, lrn, gender, registeredNumber, table);
+            // Save student information to the selected table including the registered number and section
+            saveStudentInfo(studentname, lrn, gender, registeredNumber, section, table);
         }
 
-        function saveStudentInfo(studentname, lrn, gender, registeredNumber, table) {
+        function saveStudentInfo(studentname, lrn, gender, registeredNumber, section, table) {
             const xhr = new XMLHttpRequest();
             xhr.open("POST", "", true); // Posting to the same file
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -266,7 +150,7 @@ canvas {
             };
 
             // Encode data to avoid issues
-            const data = `studentname=${encodeURIComponent(studentname)}&lrn=${encodeURIComponent(lrn)}&gender=${encodeURIComponent(gender)}&registered_number=${encodeURIComponent(registeredNumber)}&table=${encodeURIComponent(table)}`;
+            const data = `studentname=${encodeURIComponent(studentname)}&lrn=${encodeURIComponent(lrn)}&gender=${encodeURIComponent(gender)}&registered_number=${encodeURIComponent(registeredNumber)}&section=${encodeURIComponent(section)}&table=${encodeURIComponent(table)}`;
             xhr.send(data);
         }
     </script>

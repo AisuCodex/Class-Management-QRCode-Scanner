@@ -91,7 +91,7 @@ if (isset($_POST['scan_qr'])) {
         $timeIn = $row['time_in']; // Student's time_in (if available)
 
         // Set default status to 'On Time'
-        $status = '';
+        $status = 'On Time';
 
         // If the student scanned the QR code later than the deadline, mark as 'Late'
         if ($scannedTime && strtotime($scannedTime) > strtotime($deadline)) {
@@ -202,16 +202,10 @@ $searchQuery = isset($_POST['search_query']) ? $_POST['search_query'] : '';
                 echo "<p>Error retrieving data from '$currentTable': " . $conn->error . "</p>";
             } else if ($dataResult->num_rows > 0) {
                 while ($dataRow = $dataResult->fetch_assoc()) {
-                    // Default status
-                    $status = '';
-            
-                    // Compare time_in and deadline to determine the correct status
-                    if ($dataRow['time_in']) {
-                        if (strtotime($dataRow['time_in']) > strtotime($dataRow['deadline'])) {
-                            $status = 'Late';
-                        } elseif (strtotime($dataRow['time_in']) <= strtotime($dataRow['deadline'])) {
-                            $status = 'Present'; // Assuming 'present' means 'on time or early'
-                        }
+                    // Compare time_in and deadline to set status
+                    $status = 'On Time'; // Default status
+                    if ($dataRow['time_in'] && strtotime($dataRow['time_in']) > strtotime($dataRow['deadline'])) {
+                        $status = 'Late';
                     }
 
                     echo "<tr>

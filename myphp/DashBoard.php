@@ -16,15 +16,29 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Retrieve all data from `attendance_table`
-$sql = "SELECT * FROM attendance_table";
+// Name of the table to display
+$tableName = "attendance_table";
+
+// Retrieve all data from the table
+$sql = "SELECT * FROM `$tableName`";
 $result = $conn->query($sql);
 
-// Check if the query returns any rows
+$dataFetched = false;
+
 if ($result->num_rows > 0) {
     $dataFetched = true;
-} else {
-    $dataFetched = false;
+
+    // Iterate over rows to update empty `time_in` entries
+    while ($row = $result->fetch_assoc()) {
+        if (empty($row['time_in'])) {
+            // Update the status to "Absent" in the database
+            $updateSql = "UPDATE `$tableName` SET status = 'Absent' WHERE id = " . $row['id'];
+            $conn->query($updateSql);
+        }
+    }
+
+    // Retrieve the updated data for display
+    $result = $conn->query($sql);
 }
 ?>
 
@@ -59,7 +73,7 @@ if ($result->num_rows > 0) {
             // Display rows of data
             while ($row = $result->fetch_assoc()) {
                 // Compare time_in and deadline to set status
-                $status = 'On Time'; // Default status
+                $status = $row['status']; // Use the updated status from the database
                 if ($row['time_in'] && strtotime($row['time_in']) > strtotime($row['deadline'])) {
                     $status = 'Late';
                 }
@@ -78,7 +92,7 @@ if ($result->num_rows > 0) {
             ?>
         </table>
     <?php else: ?>
-        <p>No data found in the attendance table.</p>
+        <p>No data found in the table.</p>
     <?php endif; ?>
 
 </body>

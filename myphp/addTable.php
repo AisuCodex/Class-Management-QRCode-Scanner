@@ -29,9 +29,6 @@ include 'config.php';
         <label for="deadline">Set Deadline (HH:MM:SS):</label>
         <input type="time" id="deadline" name="deadline" required>
         <br>
-        <label for="section">Enter Section:</label>
-        <input type="text" id="section" name="section" required>
-        <br>
 
         <!-- Dropdown to select table from masterlistDB to copy data from -->
         <label for="copy_from_table">Select Master List Table to Copy From:</label>
@@ -52,13 +49,13 @@ include 'config.php';
     </form>
     <button onclick="window.location.href='QRScanner.php'">Go to QR Code Scanner</button>
 
-    <!-- Search form -->
-    <h3>Search for a Table</h3>
-    <form method="POST" action="">
-        <input type="text" name="search_query" placeholder="Search table name..." value="<?php echo htmlspecialchars($searchQuery ?? ''); ?>" required>
-        <button type="submit">Search</button>
-    </form>
-
+<!-- Search form -->
+<h3>Search for a Table</h3>
+<form method="POST" action="">
+    <input type="text" name="search_query" placeholder="Search table name..." value="<?php echo htmlspecialchars($searchQuery ?? ''); ?>" required>
+    <button type="submit">Search</button>
+    <button type="button" onclick="window.location.href=''">Reset</button>
+</form>
     <?php
     // Handle Finalize Button Click
     if (isset($_POST['finalize_table'])) {

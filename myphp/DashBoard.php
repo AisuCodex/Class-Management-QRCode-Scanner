@@ -32,7 +32,6 @@ function isValidDate($date) {
 // Fetch all table names from the `dashboard_db` database
 $sql = "SHOW TABLES";
 $tableResult = $conn->query($sql);
-
 ?>
 
 <!DOCTYPE html>
@@ -84,6 +83,7 @@ $tableResult = $conn->query($sql);
             $dataResult = $conn->query($dataSql);
 
             echo "<h3>Table: $tableName</h3>";
+            echo "<a href='download.php?table=$tableName' target='_blank'>Download CSV</a>"; // Add Download Button
 
             if ($dataResult->num_rows > 0) {
                 echo "<table border='1'>
@@ -114,23 +114,16 @@ $tableResult = $conn->query($sql);
                         $status = 'Absent';
                     }
 
-                    // Highlight matching search terms (if date is found in the search)
-                    $highlightedName = preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['studentname']);
-                    $highlightedSection = preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['section']);
-                    $highlightedGender = preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['gender']);
-                    $highlightedLrn = preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['lrn']);
-                    $highlightedDateCreated = isValidDate($searchQuery) ? preg_replace("/($searchQuery)/i", "<span class='highlight'>$1</span>", $row['date_created']) : $row['date_created'];
-
                     echo "<tr>
                         <td>" . $row['id'] . "</td>
-                        <td>" . $highlightedSection . "</td> <!-- Display Section Field -->
+                        <td>" . $row['section'] . "</td>
                         <td>" . $status . "</td>
-                        <td>" . $highlightedName . "</td>
-                        <td>" . $highlightedGender . "</td>
-                        <td>" . $highlightedLrn . "</td>
+                        <td>" . $row['studentname'] . "</td>
+                        <td>" . $row['gender'] . "</td>
+                        <td>" . $row['lrn'] . "</td>
                         <td>" . $row['time_in'] . "</td>
                         <td>" . $row['deadline'] . "</td>
-                        <td>" . $highlightedDateCreated . "</td>
+                        <td>" . $row['date_created'] . "</td>
                     </tr>";
                 }
                 echo "</table>";
@@ -142,7 +135,6 @@ $tableResult = $conn->query($sql);
         echo "<p>No tables found in the database.</p>";
     }
     ?>
-
 </body>
 </html>
 

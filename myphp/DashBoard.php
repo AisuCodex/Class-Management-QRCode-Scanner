@@ -2,26 +2,34 @@
 // Start the session
 session_start();
 
-// Database configuration for `dashboard_db`
+// Database configuration for `u193875898_dashboard_db`
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "dashboard_db"; // Target database
+$dbname = "u193875898_dashboard_db"; // Target database
 
-// Create connection to `dashboard_db`
+// Create connection to `u193875898_dashboard_db`
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection to `dashboard_db`
+// Check connection to `u193875898_dashboard_db`
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Handle search
+// Handle search and section filter
 $searchQuery = '';
-if (isset($_POST['search'])) {
-    $searchQuery = $_POST['search_term'];
-    // Sanitize the input to prevent SQL injection
-    $searchQuery = $conn->real_escape_string($searchQuery);
+$sectionFilter = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['search'])) {
+        $searchQuery = $_POST['search_term'];
+        // Sanitize the input to prevent SQL injection
+        $searchQuery = $conn->real_escape_string($searchQuery);
+    }
+    if (isset($_POST['section_filter'])) {
+        $sectionFilter = $_POST['section_filter'];
+        // Sanitize the input to prevent SQL injection
+        $sectionFilter = $conn->real_escape_string($sectionFilter);
+    }
 }
 
 // Function to validate if the input is a valid date format (YYYY-MM-DD)
@@ -29,7 +37,7 @@ function isValidDate($date) {
     return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
 }
 
-// Fetch all table names from the `dashboard_db` database
+// Fetch all table names from the `u193875898_dashboard_db` database
 $sql = "SHOW TABLES";
 $tableResult = $conn->query($sql);
 ?>
@@ -42,7 +50,7 @@ $tableResult = $conn->query($sql);
     <title>Attendance Table Display</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./css/addTable.css">
+    <link rel="stylesheet" href="../css/addTable.css">
     <style>
         /* Add styles for highlighting */
         .highlight {
@@ -54,11 +62,46 @@ $tableResult = $conn->query($sql);
 
     <h2>Attendance Tables</h2>
 
-    <!-- Search form -->
+    <!-- Filter and search form -->
     <form method="POST">
+        <!-- Dropdown for section filter -->
+        <label for="section_filter">Filter by Section:</label>
+        <select name="section_filter" id="section_filter">
+            <option value="">Section Filter</option>
+            <option value="">GR-10</option>
+            <option value="Amber" <?php if ($sectionFilter == "Amber") echo "selected"; ?>>Amber</option>
+            <option value="Amethyst" <?php if ($sectionFilter == "Amethyst") echo "selected"; ?>>Amethyst</option>
+            <option value="Diamond" <?php if ($sectionFilter == "Diamond") echo "selected"; ?>>Diamond</option>
+            <option value="Emerald" <?php if ($sectionFilter == "Emerald") echo "selected"; ?>>Emerald</option>
+            <option value="Garnet" <?php if ($sectionFilter == "Garnet") echo "selected"; ?>>Garnet</option>
+            <option value="Jade" <?php if ($sectionFilter == "Jade") echo "selected"; ?>>Jade</option>
+            <option value="Onyx" <?php if ($sectionFilter == "Onyx") echo "selected"; ?>>Onyx</option>
+            <option value="Pearl" <?php if ($sectionFilter == "Pearl") echo "selected"; ?>>Pearl</option>
+            <option value="Ruby" <?php if ($sectionFilter == "Ruby") echo "selected"; ?>>Ruby</option>
+            <option value="Sapphire" <?php if ($sectionFilter == "Sapphire") echo "selected"; ?>>Sapphire</option>
+            <option value="">GR-9</option>
+
+            <option value="Amber" <?php if ($sectionFilter == "Agoncillo") echo "selected"; ?>>Agoncillo</option>
+            <option value="Amethyst" <?php if ($sectionFilter == "Aquino") echo "selected"; ?>>Aquino</option>
+            <option value="Diamond" <?php if ($sectionFilter == "Balagtas") echo "selected"; ?>>Balagtas</option>
+            <option value="Emerald" <?php if ($sectionFilter == "Bonifacio") echo "selected"; ?>>Bonifacio</option>
+            <option value="Garnet" <?php if ($sectionFilter == "Jacinto") echo "selected"; ?>>Jacinto</option>
+            <option value="Jade" <?php if ($sectionFilter == "Lapu-Lapu") echo "selected"; ?>>Lapu-Lapu</option>
+            <option value="Onyx" <?php if ($sectionFilter == "Mabini") echo "selected"; ?>>Mabini</option>
+            <option value="Pearl" <?php if ($sectionFilter == "Ponce") echo "selected"; ?>>Ponce</option>
+            <option value="Ruby" <?php if ($sectionFilter == "Rizal") echo "selected"; ?>>Rizal</option>
+
+            <option value="">GR-8</option>
+
+            <option value="">GR-7</option>
+
+        </select>
+
+        <!-- Search bar -->
         <input type="text" name="search_term" placeholder="Search..." value="<?php echo htmlspecialchars($searchQuery); ?>" />
-        <button type="submit" name="search">Search</button>
+        <button type="submit" name="search">Apply Filters</button>
     </form>
+    
 
     <?php
     if ($tableResult->num_rows > 0) {
@@ -66,20 +109,22 @@ $tableResult = $conn->query($sql);
         while ($tableRow = $tableResult->fetch_array()) {
             $tableName = $tableRow[0]; // Get the name of each table
 
-            // Modify the SQL query to search within the table if a search term is provided
-            $dataSql = "SELECT * FROM `$tableName`";
+            // Modify the SQL query to search within the table if filters are applied
+            $dataSql = "SELECT * FROM `$tableName` WHERE 1";
             if ($searchQuery) {
-                $dataSql .= " WHERE 
+                $dataSql .= " AND (
                     studentname LIKE '%$searchQuery%' OR
                     gender LIKE '%$searchQuery%' OR
-                    section LIKE '%$searchQuery%' OR
                     lrn LIKE '%$searchQuery%'";
-
-                // If the search query is a valid date, search within the 'date_created' field
                 if (isValidDate($searchQuery)) {
                     $dataSql .= " OR date_created LIKE '%$searchQuery%'";
                 }
+                $dataSql .= ")";
             }
+            if ($sectionFilter) {
+                $dataSql .= " AND section = '$sectionFilter'";
+            }
+
             $dataResult = $conn->query($dataSql);
 
             echo "<h3>Table: $tableName</h3>";
@@ -128,7 +173,7 @@ $tableResult = $conn->query($sql);
                 }
                 echo "</table>";
             } else {
-                echo "<p>No data found matching your search in table '$tableName'.</p>";
+                echo "<p>No data found matching your filters in table '$tableName'.</p>";
             }
         }
     } else {

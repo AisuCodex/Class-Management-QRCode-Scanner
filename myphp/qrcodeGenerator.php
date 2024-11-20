@@ -3,7 +3,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "masterlistDB";
+$dbname = "u193875898_masterlistdb";
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -54,7 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['studentname'], $_POST[
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Generator</title>
-    <link rel="stylesheet" href="css/qrcodeGenerator.css">
+    <link rel="stylesheet" href="../css/qrcodeGenerator.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
 </head>
 <style>

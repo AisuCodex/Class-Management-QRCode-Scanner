@@ -1,6 +1,7 @@
 <?php
-include 'config.php';
+ include('./myphp/config.php');
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -30,12 +31,12 @@ include 'config.php';
         <input type="time" id="deadline" name="deadline" required>
         <br>
 
-        <!-- Dropdown to select table from masterlistDB to copy data from -->
+        <!-- Dropdown to select table from u193875898_masterlistdb to copy data from -->
         <label for="copy_from_table">Select Master List Table to Copy From:</label>
         <select id="copy_from_table" name="copy_from_table" required>
             <option value="">Select a table</option>
             <?php
-            // Fetch tables from masterlistDB and populate dropdown
+            // Fetch tables from u193875898_masterlistdb and populate dropdown
             $tablesResult = $masterConn->query("SHOW TABLES");
             if ($tablesResult->num_rows > 0) {
                 while ($tableRow = $tablesResult->fetch_array()) {
@@ -47,7 +48,10 @@ include 'config.php';
         <br>
         <button type="submit" name="create_table">Create Table with Deadline and Copy Data</button>
     </form>
-    <button onclick="window.location.href='QRScanner.php'">Go to QR Code Scanner</button>
+    <button onclick="window.location.href='./myphp/QRScanner.php'">Go to QR Code Scanner</button>
+    <button onclick="window.location.href='./myphp/masterList_addTable.php'">Go to masterList_addTable</button>
+    <button onclick="window.location.href='./myphp/qrcodeGenerator.php'">Go to qrcodeGenerator</button>
+    <button onclick="window.location.href='./myphp/Dashboard.php'">Go to Dashboard</button>
 
 <!-- Search form -->
 <h3>Search for a Table</h3>
@@ -76,23 +80,23 @@ include 'config.php';
     if (isset($_POST['send_to_dashboard'])) {   
         $tableName = $_POST['table_name'];
 
-        // Check if table exists in `table_db`
+        // Check if table exists in `u193875898_table_db`
         $checkTableQuery = "SHOW TABLES LIKE '$tableName'";
         $checkResult = $conn->query($checkTableQuery);
 
         if ($checkResult && $checkResult->num_rows > 0) {
-            // Connect to `dashboard_db`
-            $dashboardDbConn = new mysqli($servername, $username, $password, "dashboard_db");
+            // Connect to `u193875898_dashboard_db`
+            $dashboardDbConn = new mysqli($servername, $username, $password, "u193875898_dashboard_db");
 
             if ($dashboardDbConn->connect_error) {
                 die("Connection to dashboard database failed: " . $dashboardDbConn->connect_error);
             }
 
-            // Create the same table structure in `dashboard_db`
-            $createTableQuery = "CREATE TABLE IF NOT EXISTS `dashboard_db`.`$tableName` LIKE `table_db`.`$tableName`";
+            // Create the same table structure in `u193875898_dashboard_db`
+            $createTableQuery = "CREATE TABLE IF NOT EXISTS `u193875898_dashboard_db`.`$tableName` LIKE `u193875898_table_db`.`$tableName`";
             if ($dashboardDbConn->query($createTableQuery) === TRUE) {
-                // Copy all data from `table_db` to `dashboard_db`
-                $copyDataQuery = "INSERT INTO `dashboard_db`.`$tableName` SELECT * FROM `table_db`.`$tableName`";
+                // Copy all data from `u193875898_table_db` to `u193875898_dashboard_db`
+                $copyDataQuery = "INSERT INTO `u193875898_dashboard_db`.`$tableName` SELECT * FROM `u193875898_table_db`.`$tableName`";
                 if ($dashboardDbConn->query($copyDataQuery) === TRUE) {
                     echo "<p>Table '$tableName' successfully sent to the dashboard database!</p>";
                 } else {

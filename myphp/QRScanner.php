@@ -1,16 +1,19 @@
 <?php
-// Database configuration for table_db
+// Start session to store the selected table
+session_start();
+
+// Database configuration for u193875898_table_db
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname_table = "table_db"; // Database name where the tables exist
+$dbname_table = "u193875898_table_db"; // Database name where the tables exist
 
-// Create connection to table_db
+// Create connection to u193875898_table_db
 $conn_table = new mysqli($servername, $username, $password, $dbname_table);
 
-// Check connection for table_db
+// Check connection for u193875898_table_db
 if ($conn_table->connect_error) {
-    die("Connection failed to table_db: " . $conn_table->connect_error);
+    die("Connection failed to u193875898_table_db: " . $conn_table->connect_error);
 }
 
 // Handle POST request to insert scanned data
@@ -19,6 +22,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'
     $lrn = $_POST['lrn'];
     $registeredNumber = $_POST['registered_number'];
     $tableName = $_POST['tableName'];
+
+    // Save the selected table in session
+    $_SESSION['selectedTable'] = $tableName;
 
     // Ensure tableName is valid by checking against available tables
     $tables = [];
@@ -64,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'
             // Update only the status and time_in fields if they are currently blank
             $stmt_table_update = $conn_table->prepare("UPDATE $tableName SET status = IF(status IS NULL, ?, status), time_in = IF(time_in IS NULL, NOW(), time_in) WHERE registered_number = ?");
             $stmt_table_update->bind_param("ss", $status, $registeredNumber);
-            
+
             if ($stmt_table_update->execute()) {
                 echo "Status and time_in updated successfully!";
             } else {
@@ -75,7 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'
         } else {
             echo "No update needed: Status and time_in are already set.";
         }
-        
+
         $stmt_deadline->close();
     } else {
         echo "Error: QR code data does not match any entry in the selected table.";
@@ -85,7 +91,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['qrcode'], $_POST['lrn'
     exit;
 }
 
-// Fetch the list of tables in the table_db
+// Fetch the list of tables in the u193875898_table_db
 $tables = [];
 $result = $conn_table->query("SHOW TABLES");
 if ($result) {
@@ -94,9 +100,11 @@ if ($result) {
     }
 }
 
+// Get the selected table from the session
+$selectedTable = isset($_SESSION['selectedTable']) ? $_SESSION['selectedTable'] : "";
+
 $conn_table->close();
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -104,14 +112,14 @@ $conn_table->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code Scanner</title>
-    <link rel="stylesheet" href="css/QRScanner.css">
+    <link rel="stylesheet" href="../css/QRScanner.css">
 </head>
 <body>
 <div class="container">
     <h2>Scan QR Code</h2>
 
     <!-- Back Button -->
-    <button onclick="window.location.href='addTable.php'" style="margin-bottom: 15px;">Back</button>
+    <button onclick="window.location.href='../index.php'" style="margin-bottom: 15px;">Back</button>
 
     <video id="preview" width="100%" height="auto" style="border: 1px solid #000;"></video>
     <div id="result" class="result">
@@ -123,7 +131,10 @@ $conn_table->close();
     <label for="tableSelect">Select Table:</label>
     <select id="tableSelect">
         <?php foreach ($tables as $table): ?>
-            <option value="<?php echo htmlspecialchars($table); ?>"><?php echo htmlspecialchars($table); ?></option>
+            <option value="<?php echo htmlspecialchars($table); ?>" 
+                <?php echo ($table === $selectedTable) ? "selected" : ""; ?>>
+                <?php echo htmlspecialchars($table); ?>
+            </option>
         <?php endforeach; ?>
     </select>
 </div>
@@ -178,32 +189,31 @@ $conn_table->close();
             requestAnimationFrame(scanQRCode);
         }
     }
-
     async function sendToBackend(studentName, lrn, registeredNumber) {
-        let selectedTable = document.getElementById('tableSelect').value;
-        try {
-            let response = await fetch('', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `qrcode=${encodeURIComponent(studentName)}&lrn=${encodeURIComponent(lrn)}&registered_number=${encodeURIComponent(registeredNumber)}&tableName=${encodeURIComponent(selectedTable)}`
-            });
+    let selectedTable = document.getElementById('tableSelect').value;
+    try {
+        let response = await fetch('', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `qrcode=${encodeURIComponent(studentName)}&lrn=${encodeURIComponent(lrn)}&registered_number=${encodeURIComponent(registeredNumber)}&tableName=${encodeURIComponent(selectedTable)}`
+        });
 
-            let result = await response.text();
-            resultText.textContent = result.includes("Error") ? 
-                "QR Code data doesn't match any entry in the selected table." : 
-                result;
-
-            // If the scan is successful, refresh the page to scan again
-            if (!result.includes("Error")) {
-                // Optionally, alert the user
-                alert("QR Code data has been successfully processed!");
-                location.reload(); // Reload the page to allow the next scan
-            }
-        } catch (error) {
-            console.error('Error during the request:', error);
-            resultText.textContent = "An error occurred, please try again.";
+        let result = await response.text();
+        if (result.includes("Error")) {
+            // Display an alert for denied QR code and refresh the page after user clicks "OK"
+            alert("QR code denied.");
+            location.reload(); // Refresh the page
+        } else {
+            // Display success message and refresh the page
+            alert("QR Code data has been successfully processed!");
+            location.reload(); // Reload the page to allow the next scan
         }
+    } catch (error) {
+        console.error('Error during the request:', error);
+        resultText.textContent = "An error occurred, please try again.";
     }
+}
+
 </script>
 </body>
 </html>

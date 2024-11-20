@@ -1,11 +1,11 @@
 <?php
 session_start();
 
-// Database configuration for target database `table_db`
+// Database configuration for target database `u193875898_table_db`
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "table_db"; // Replace with your actual database name
+$dbname = "u193875898_table_db"; // Replace with your actual database name
 
 // Create connection for target database
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -15,8 +15,8 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Database configuration for source database `masterlistDB`
-$masterDbname = "masterlistDB"; // Replace with the actual name of your master database
+// Database configuration for source database `u193875898_masterlistdb`
+$masterDbname = "u193875898_masterlistdb"; // Replace with the actual name of your master database
 $masterConn = new mysqli($servername, $username, $password, $masterDbname);
 
 // Check connection for source database
@@ -50,7 +50,7 @@ if (isset($_POST['create_table'])) {
     if ($conn->query($sql) === TRUE) {
         echo "<p>Table '$tableName' with deadline '$deadline' created successfully!</p>";
 
-        // Copy data from selected table in `masterlistDB` to the newly created table, including section
+        // Copy data from selected table in `u193875898_masterlistdb` to the newly created table, including section
         $copySql = "INSERT INTO $tableName (section, studentname, gender, lrn, registered_number) 
                     SELECT section, studentname, gender, lrn, registered_number 
                     FROM $masterDbname.$copyFromTable";  // Ensure section is copied

@@ -3,7 +3,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "masterlistDB"; // Ensure this matches your actual database name
+$dbname = "u193875898_masterlistdb"; // Ensure this matches your actual database name
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

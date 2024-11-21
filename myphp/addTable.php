@@ -27,8 +27,9 @@
         <label for="table_name">Enter Table Name:</label>
         <input type="text" id="table_name" name="table_name" required>
         <br>
-        <label for="deadline">Set Deadline (HH:MM:SS):</label>
-        <input type="time" id="deadline" name="deadline" required>
+        <label for="deadline">Set Deadline (Time):</label>
+        <input type="time" id="deadline" name="deadline" required step="1">
+        <small style="display: block; margin: 5px 0;">Time will be displayed in 12-hour format (AM/PM)</small>
         <br>
 
         <!-- Dropdown to select table from u193875898_masterlistdb to copy data from -->
@@ -150,12 +151,22 @@
                     if ($dataRow['time_in']) {
                         if (strtotime($dataRow['time_in']) > strtotime($dataRow['deadline'])) {
                             $status = 'Late';
+                            // Update the status in the database
+                            $updateStatus = "UPDATE $currentTable SET status = 'Late' WHERE id = " . $dataRow['id'];
+                            $conn->query($updateStatus);
                         } elseif (strtotime($dataRow['time_in']) <= strtotime($dataRow['deadline'])) {
                             $status = 'Present';
+                            // Update the status in the database
+                            $updateStatus = "UPDATE $currentTable SET status = 'Present' WHERE id = " . $dataRow['id'];
+                            $conn->query($updateStatus);
                         }
                     } else {
-                        $status = '';
+                        $status = $dataRow['status']; // Use existing status from database
                     }
+
+                    // Convert time_in and deadline to 12-hour format
+                    $time_in_formatted = $dataRow['time_in'] ? date("h:i:s A", strtotime($dataRow['time_in'])) : '';
+                    $deadline_formatted = date("h:i:s A", strtotime($dataRow['deadline']));
 
                     // Output the table row
                     echo "<tr>
@@ -165,8 +176,8 @@
                         <td>" . $dataRow['studentname'] . "</td>
                         <td>" . $dataRow['gender'] . "</td>
                         <td>" . $dataRow['lrn'] . "</td>
-                        <td>" . $dataRow['time_in'] . "</td>
-                        <td>" . $dataRow['deadline'] . "</td>
+                        <td>" . $time_in_formatted . "</td>
+                        <td>" . $deadline_formatted . "</td>
                         <td>" . $dataRow['date_created'] . "</td>
                     </tr>";
                 }

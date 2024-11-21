@@ -185,17 +185,21 @@ $tableResult = $conn->query($sql);
 
                 // Iterate through each row in the table and display the data
                 while ($row = $dataResult->fetch_assoc()) {
-                    // Default to 'Present'
-                    $status = '';
                     // Determine status based on time_in and deadline
                     if ($row['time_in']) {
                         if (strtotime($row['time_in']) > strtotime($row['deadline'])) {
                             $status = 'Late';
+                            // Update the status in the database
+                            $updateStatus = "UPDATE $tableName SET status = 'Late' WHERE id = " . $row['id'];
+                            $conn->query($updateStatus);
                         } else {
                             $status = 'Present';
+                            // Update the status in the database
+                            $updateStatus = "UPDATE $tableName SET status = 'Present' WHERE id = " . $row['id'];
+                            $conn->query($updateStatus);
                         }
                     } else {
-                        $status = 'Absent';
+                        $status = $row['status']; // Use existing status from database
                     }
 
                     // Convert time_in and deadline to 12-hour format

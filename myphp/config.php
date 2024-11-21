@@ -86,9 +86,9 @@ if (isset($_POST['delete_table'])) {
 
 // Handle QR code scan and update status logic
 if (isset($_POST['scan_qr'])) {
-    $studentId = $_POST['student_id']; // Student's unique identifier (e.g., id or registered_number)
-    $scannedTime = $_POST['scanned_time']; // Time when the QR code was scanned
-    $tableName = $_POST['table_name']; // The table where data needs to be updated
+    $studentId = $_POST['student_id'];
+    $scannedTime = $_POST['scanned_time'];
+    $tableName = $_POST['table_name'];
 
     // Convert scanned time to 24-hour format for storage
     $scannedTime = date('H:i:s', strtotime($scannedTime));
@@ -99,16 +99,10 @@ if (isset($_POST['scan_qr'])) {
 
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        $deadline = $row['deadline']; // Deadline set for the student
-        $timeIn = $row['time_in']; // Student's time_in (if available)
+        $deadline = $row['deadline'];
 
-        // Set default status to 'On Time'
-        $status = '';
-
-        // If the student scanned the QR code later than the deadline, mark as 'Late'
-        if ($scannedTime && strtotime($scannedTime) > strtotime($deadline)) {
-            $status = 'Late';
-        }
+        // Determine status based on scan time
+        $status = strtotime($scannedTime) > strtotime($deadline) ? 'Late' : 'Present';
 
         // Update the status and time_in after QR code scan
         $updateQuery = "UPDATE $tableName SET status = '$status', time_in = '$scannedTime' WHERE registered_number = '$studentId'";

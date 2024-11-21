@@ -41,7 +41,6 @@ function isValidDate($date) {
 $sql = "SHOW TABLES";
 $tableResult = $conn->query($sql);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -55,6 +54,40 @@ $tableResult = $conn->query($sql);
         /* Add styles for highlighting */
         .highlight {
             background-color: yellow;
+        }
+    </style>
+    <script type="text/javascript">
+        function confirmDelete(tableName) {
+            return confirm("Are you sure you want to delete the table '" + tableName + "'? This action cannot be undone!");
+        }
+    </script>
+    <style>
+        .table-actions {
+            margin: 10px 0;
+        }
+
+        .action-button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            font-size: 14px;
+        }
+
+        .action-button:hover {
+            opacity: 0.9;
+        }
+
+        a.action-button {
+            background-color: #4CAF50;
+            display: inline-block;
+        }
+
+        .delete-button {
+            background-color: #f44336;
         }
     </style>
 </head>
@@ -128,8 +161,14 @@ $tableResult = $conn->query($sql);
             $dataResult = $conn->query($dataSql);
 
             echo "<h3>Table: $tableName</h3>";
-            echo "<a href='download.php?table=$tableName' target='_blank'>Download CSV</a>"; // Add Download Button
-
+            echo "<div class='table-actions'>";
+            echo "<a href='download.php?table=$tableName' target='_blank' class='action-button'>Download CSV</a>";
+            echo "<form method='POST' style='display: inline;'>";
+            echo "<input type='hidden' name='table_to_delete' value='$tableName'>";
+            echo "<button type='submit' name='delete_table' class='action-button delete-button' onclick='return confirmDelete(\"$tableName\")'>Delete Table</button>";
+            echo "</form>";
+            echo "</div>";
+            
             if ($dataResult->num_rows > 0) {
                 echo "<table border='1'>
                         <tr>
@@ -159,6 +198,10 @@ $tableResult = $conn->query($sql);
                         $status = 'Absent';
                     }
 
+                    // Convert time_in and deadline to 12-hour format
+                    $time_in_formatted = $row['time_in'] ? date("h:i:s A", strtotime($row['time_in'])) : '';
+                    $deadline_formatted = date("h:i:s A", strtotime($row['deadline']));
+
                     echo "<tr>
                         <td>" . $row['id'] . "</td>
                         <td>" . $row['section'] . "</td>
@@ -166,8 +209,8 @@ $tableResult = $conn->query($sql);
                         <td>" . $row['studentname'] . "</td>
                         <td>" . $row['gender'] . "</td>
                         <td>" . $row['lrn'] . "</td>
-                        <td>" . $row['time_in'] . "</td>
-                        <td>" . $row['deadline'] . "</td>
+                        <td>" . $time_in_formatted . "</td>
+                        <td>" . $deadline_formatted . "</td>
                         <td>" . $row['date_created'] . "</td>
                     </tr>";
                 }
@@ -184,6 +227,23 @@ $tableResult = $conn->query($sql);
 </html>
 
 <?php
+// Handle table deletion
+if (isset($_POST['delete_table']) && isset($_POST['table_to_delete'])) {
+    $tableToDelete = $_POST['table_to_delete'];
+    
+    // Sanitize the table name to prevent SQL injection
+    $tableToDelete = $conn->real_escape_string($tableToDelete);
+    
+    // Drop the table
+    $dropQuery = "DROP TABLE IF EXISTS `$tableToDelete`";
+    if ($conn->query($dropQuery) === TRUE) {
+        echo "<script>alert('Table \"$tableToDelete\" has been successfully deleted.');</script>";
+        echo "<script>window.location.href = window.location.pathname;</script>";
+    } else {
+        echo "<script>alert('Error deleting table: " . $conn->error . "');</script>";
+    }
+}
+
 // Close the database connection
 $conn->close();
 ?>

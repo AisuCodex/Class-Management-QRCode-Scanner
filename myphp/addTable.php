@@ -1,5 +1,5 @@
 <?php
- include('./myphp/config.php');
+ include('config.php');
 ?>
 
 
@@ -10,7 +10,7 @@
     <title>Create, Display, Edit, and Delete Tables with Deadline</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./css/addTable.css">
+    <link rel="stylesheet" href="../css/addTable.css">
 
     <script type="text/javascript">
         function confirmDelete() {
@@ -48,10 +48,10 @@
         <br>
         <button type="submit" name="create_table">Create Table with Deadline and Copy Data</button>
     </form>
-    <button onclick="window.location.href='./myphp/QRScanner.php'">Go to QR Code Scanner</button>
-    <button onclick="window.location.href='./myphp/masterList_addTable.php'">Go to masterList_addTable</button>
-    <button onclick="window.location.href='./myphp/qrcodeGenerator.php'">Go to qrcodeGenerator</button>
-    <button onclick="window.location.href='./myphp/Dashboard.php'">Go to Dashboard</button>
+    <button onclick="window.location.href='QRScanner.php'">Go to QR Code Scanner</button>
+    <button onclick="window.location.href='masterList_addTable.php'">Go to masterList_addTable</button>
+    <button onclick="window.location.href='qrcodeGenerator.php'">Go to qrcodeGenerator</button>
+    <button onclick="window.location.href='Dashboard.php'">Go to Dashboard</button>
 
 <!-- Search form -->
 <h3>Search for a Table</h3>

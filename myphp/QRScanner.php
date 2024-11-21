@@ -119,7 +119,7 @@ $conn_table->close();
     <h2>Scan QR Code</h2>
 
     <!-- Back Button -->
-    <button onclick="window.location.href='../index.php'" style="margin-bottom: 15px;">Back</button>
+    <button onclick="window.location.href='addTable.php'" style="margin-bottom: 15px;">Back</button>
 
     <video id="preview" width="100%" height="auto" style="border: 1px solid #000;"></video>
     <div id="result" class="result">
